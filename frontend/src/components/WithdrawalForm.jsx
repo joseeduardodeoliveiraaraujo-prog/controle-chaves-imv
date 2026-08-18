@@ -57,7 +57,12 @@ export default function WithdrawalForm({ onSuccess, onCancel }) {
   }
 
   if (loadingData) {
-    return <p>Carregando chaves e pessoas...</p>;
+    return (
+      <div className="loading-inline">
+        <div className="spinner"></div>
+        <span>Carregando chaves e pessoas...</span>
+      </div>
+    );
   }
 
   return (

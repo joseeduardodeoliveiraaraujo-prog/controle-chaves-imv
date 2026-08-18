@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { addKey, getKeys, updateKey, deleteKey } from "../services/firestore";
 
 const emptyForm = { name: "", location: "", description: "" };
@@ -11,6 +11,7 @@ export default function Keys() {
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -31,20 +32,62 @@ export default function Keys() {
   }
 
   function handleChange(e) {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: value });
+    if (fieldErrors[name]) {
+      setFieldErrors({ ...fieldErrors, [name]: "" });
+    }
+  }
+
+  function validateForm() {
+    const errors = {};
+    const name = form.name.trim();
+    const location = form.location.trim();
+    const description = form.description.trim();
+
+    if (!name) {
+      errors.name = "Nome é obrigatório.";
+    } else if (name.length < 3 || name.length > 50) {
+      errors.name = "Nome deve ter entre 3 e 50 caracteres.";
+    }
+
+    if (!location) {
+      errors.location = "Local é obrigatório.";
+    } else if (location.length < 2 || location.length > 80) {
+      errors.location = "Local deve ter entre 2 e 80 caracteres.";
+    }
+
+    if (description.length > 200) {
+      errors.description = "Descrição deve possuir no máximo 200 caracteres.";
+    }
+
+    return errors;
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
 
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+
+    const trimmedForm = {
+      name: form.name.trim(),
+      location: form.location.trim(),
+      description: form.description.trim(),
+    };
+
     try {
       if (editingId) {
-        await updateKey(editingId, form);
+        await updateKey(editingId, trimmedForm);
       } else {
-        await addKey(form);
+        await addKey(trimmedForm);
       }
       setForm(emptyForm);
+      setFieldErrors({});
       setEditingId(null);
       await loadKeys();
     } catch {
@@ -55,11 +98,13 @@ export default function Keys() {
   function handleEdit(key) {
     setForm({ name: key.name, location: key.location, description: key.description || "" });
     setEditingId(key.id);
+    setFieldErrors({});
   }
 
   function handleCancel() {
     setForm(emptyForm);
     setEditingId(null);
+    setFieldErrors({});
   }
 
   async function handleDelete(id) {
@@ -81,9 +126,17 @@ export default function Keys() {
   return (
     <div className="page-container">
       <header className="page-header">
-        <h1>Controle de Chaves</h1>
+        <div className="header-left">
+          <h1>Controle de Chaves</h1>
+          <nav className="header-nav">
+            <Link to="/dashboard" className="nav-link">Painel</Link>
+            <Link to="/chaves" className="nav-link active">Chaves</Link>
+            <Link to="/pessoas" className="nav-link">Pessoas</Link>
+            <Link to="/historico" className="nav-link">Histórico</Link>
+          </nav>
+        </div>
         <div className="header-right">
-          <span>{user?.email}</span>
+          <span className="header-email">{user?.email}</span>
           <button onClick={handleLogout}>Sair</button>
         </div>
       </header>
@@ -104,8 +157,10 @@ export default function Keys() {
                 placeholder="Ex: Sala 5"
                 value={form.name}
                 onChange={handleChange}
-                required
+                maxLength={50}
+                className={fieldErrors.name ? "input-error" : ""}
               />
+              {fieldErrors.name && <span className="field-error">{fieldErrors.name}</span>}
 
               <label htmlFor="location">Local</label>
               <input
@@ -115,8 +170,10 @@ export default function Keys() {
                 placeholder="Ex: Bloco A"
                 value={form.location}
                 onChange={handleChange}
-                required
+                maxLength={80}
+                className={fieldErrors.location ? "input-error" : ""}
               />
+              {fieldErrors.location && <span className="field-error">{fieldErrors.location}</span>}
 
               <label htmlFor="description">Descrição</label>
               <input
@@ -126,7 +183,10 @@ export default function Keys() {
                 placeholder="Ex: Chave principal da Sala 5"
                 value={form.description}
                 onChange={handleChange}
+                maxLength={200}
+                className={fieldErrors.description ? "input-error" : ""}
               />
+              {fieldErrors.description && <span className="field-error">{fieldErrors.description}</span>}
 
               <div className="form-buttons">
                 <button type="submit">
@@ -145,7 +205,10 @@ export default function Keys() {
             <h2>Chaves Cadastradas ({keys.length})</h2>
 
             {loading ? (
-              <p>Carregando...</p>
+              <div className="loading-inline">
+                <div className="spinner"></div>
+                <span>Carregando...</span>
+              </div>
             ) : keys.length === 0 ? (
               <p className="empty-message">Nenhuma chave cadastrada ainda.</p>
             ) : (

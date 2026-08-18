@@ -5,7 +5,12 @@ export default function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div className="loading">Carregando...</div>;
+    return (
+      <div className="loading">
+        <div className="spinner"></div>
+        <span>Carregando...</span>
+      </div>
+    );
   }
 
   if (!user) {

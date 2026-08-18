@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { getAllMovements } from "../services/firestore";
 
 export default function History() {
@@ -43,9 +43,17 @@ export default function History() {
   return (
     <div className="page-container">
       <header className="page-header">
-        <h1>Controle de Chaves</h1>
+        <div className="header-left">
+          <h1>Controle de Chaves</h1>
+          <nav className="header-nav">
+            <Link to="/dashboard" className="nav-link">Painel</Link>
+            <Link to="/chaves" className="nav-link">Chaves</Link>
+            <Link to="/pessoas" className="nav-link">Pessoas</Link>
+            <Link to="/historico" className="nav-link active">Histórico</Link>
+          </nav>
+        </div>
         <div className="header-right">
-          <span>{user?.email}</span>
+          <span className="header-email">{user?.email}</span>
           <button onClick={handleLogout}>Sair</button>
         </div>
       </header>
@@ -55,7 +63,10 @@ export default function History() {
         <p className="subtitle">Todas as retiradas e devoluções registradas.</p>
 
         {loading ? (
-          <p>Carregando...</p>
+          <div className="loading-inline">
+            <div className="spinner"></div>
+            <span>Carregando...</span>
+          </div>
         ) : movements.length === 0 ? (
           <p className="empty-message">Nenhuma movimentação registrada.</p>
         ) : (
@@ -87,8 +98,8 @@ export default function History() {
                       <td>{formatDate(m.expectedReturnAt)}</td>
                       <td>{m.returnedAt ? formatDate(m.returnedAt) : "—"}</td>
                       <td>
-                        <span className={`status-badge ${m.status === "active" ? "borrowed" : "available"}`}>
-                          {m.status === "active" ? "Em uso" : "Devolvida"}
+                        <span className={`status-badge ${isOverdue ? "overdue" : m.status === "active" ? "borrowed" : "available"}`}>
+                          {isOverdue ? "Atrasada" : m.status === "active" ? "Em uso" : "Devolvida"}
                         </span>
                       </td>
                     </tr>

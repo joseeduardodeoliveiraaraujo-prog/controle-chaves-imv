@@ -12,6 +12,10 @@ Sistema web para controle de chaves de ambientes. Permite cadastrar chaves, pess
 - **Devolução de chave** — Registra a devolução e libera a chave automaticamente
 - **Histórico** — Lista todas as movimentações realizadas
 - **Controle de atrasos** — Identifica chaves com devolução atrasada
+- **Validação de formulários** — Validação em tempo real nos cadastros de chaves e pessoas com mensagens de erro por campo
+- **Máscara de telefone** — Formatação automática do telefone no padrão brasileiro (XX) XXXXX-XXXX
+- **Navegação no header** — Links de navegação Persistentes entre todas as páginas
+- **Interface refinada** — Design profissional com spinner de loading, badges de status e responsividade
 - **Segurança** — Regras Firestore protegem os dados contra acessos não autorizados
 
 ## Tecnologias
