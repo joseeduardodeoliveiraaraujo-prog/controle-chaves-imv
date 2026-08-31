@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { getAllMovements } from "../services/firestore";
@@ -6,6 +6,9 @@ import { getAllMovements } from "../services/firestore";
 export default function History() {
   const [movements, setMovements] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -35,9 +38,44 @@ export default function History() {
     navigate("/login");
   }
 
-  function formatDate(timestamp) {
+  function formatTimestamp(timestamp) {
     if (!timestamp) return "—";
     return timestamp.toDate().toLocaleString("pt-BR");
+  }
+
+  function toLocalDateString(timestamp) {
+    if (!timestamp) return "";
+    const d = timestamp.toDate();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  const filteredMovements = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    return movements.filter((m) => {
+      if (term) {
+        const matchKey = m.keyName?.toLowerCase().includes(term);
+        const matchPerson = m.personName?.toLowerCase().includes(term);
+        if (!matchKey && !matchPerson) return false;
+      }
+      if (dateFrom || dateTo) {
+        const borrowedDate = toLocalDateString(m.borrowedAt);
+        if (!borrowedDate) return false;
+        if (dateFrom && borrowedDate < dateFrom) return false;
+        if (dateTo && borrowedDate > dateTo) return false;
+      }
+      return true;
+    });
+  }, [movements, searchTerm, dateFrom, dateTo]);
+
+  const hasActiveFilters = searchTerm.trim() !== "" || dateFrom !== "" || dateTo !== "";
+
+  function clearFilters() {
+    setSearchTerm("");
+    setDateFrom("");
+    setDateTo("");
   }
 
   return (
@@ -62,6 +100,46 @@ export default function History() {
         <h2>Histórico de Movimentações</h2>
         <p className="subtitle">Todas as retiradas e devoluções registradas.</p>
 
+        {!loading && movements.length > 0 && (
+          <div className="history-filters">
+            <div className="filter-row">
+              <div className="filter-group filter-search">
+                <label htmlFor="search">Pesquisar</label>
+                <input
+                  id="search"
+                  type="text"
+                  placeholder="Nome da chave ou pessoa..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="filter-group">
+                <label htmlFor="dateFrom">De</label>
+                <input
+                  id="dateFrom"
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                />
+              </div>
+              <div className="filter-group">
+                <label htmlFor="dateTo">Até</label>
+                <input
+                  id="dateTo"
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                />
+              </div>
+              {hasActiveFilters && (
+                <button className="btn-clear-filters" onClick={clearFilters}>
+                  Limpar filtros
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div className="loading-inline">
             <div className="spinner"></div>
@@ -69,6 +147,8 @@ export default function History() {
           </div>
         ) : movements.length === 0 ? (
           <p className="empty-message">Nenhuma movimentação registrada.</p>
+        ) : filteredMovements.length === 0 ? (
+          <p className="empty-message">Nenhuma movimentação encontrada para os filtros selecionados.</p>
         ) : (
           <div className="history-table-wrapper">
             <table className="history-table">
@@ -83,7 +163,7 @@ export default function History() {
                 </tr>
               </thead>
               <tbody>
-                {movements.map((m) => {
+                {filteredMovements.map((m) => {
                   const now = new Date();
                   const isOverdue =
                     m.status === "active" &&
@@ -94,9 +174,9 @@ export default function History() {
                     <tr key={m.id} className={isOverdue ? "row-overdue" : ""}>
                       <td>{m.keyName}</td>
                       <td>{m.personName}</td>
-                      <td>{formatDate(m.borrowedAt)}</td>
-                      <td>{formatDate(m.expectedReturnAt)}</td>
-                      <td>{m.returnedAt ? formatDate(m.returnedAt) : "—"}</td>
+                      <td>{formatTimestamp(m.borrowedAt)}</td>
+                      <td>{formatTimestamp(m.expectedReturnAt)}</td>
+                      <td>{m.returnedAt ? formatTimestamp(m.returnedAt) : "—"}</td>
                       <td>
                         <span className={`status-badge ${isOverdue ? "overdue" : m.status === "active" ? "borrowed" : "available"}`}>
                           {isOverdue ? "Atrasada" : m.status === "active" ? "Em uso" : "Devolvida"}
