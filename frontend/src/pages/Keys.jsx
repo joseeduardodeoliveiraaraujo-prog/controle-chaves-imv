@@ -113,8 +113,8 @@ export default function Keys() {
     try {
       await deleteKey(id);
       await loadKeys();
-    } catch {
-      setError("Erro ao excluir chave.");
+    } catch (err) {
+      setError(err.message || "Erro ao excluir chave.");
     }
   }
 

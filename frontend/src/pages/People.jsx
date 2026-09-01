@@ -146,8 +146,8 @@ export default function People() {
     try {
       await deletePerson(id);
       await loadPeople();
-    } catch {
-      setError("Erro ao excluir pessoa.");
+    } catch (err) {
+      setError(err.message || "Erro ao excluir pessoa.");
     }
   }
 

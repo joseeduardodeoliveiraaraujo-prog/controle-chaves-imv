@@ -37,11 +37,26 @@ export async function updateKey(id, keyData) {
 }
 
 export async function deleteKey(id) {
-  const keyRef = doc(db, "keys", id);
-  await deleteDoc(keyRef);
+  await runTransaction(db, async (transaction) => {
+    const keyRef = doc(db, "keys", id);
+    const keyDoc = await transaction.get(keyRef);
+
+    if (!keyDoc.exists()) {
+      throw new Error("Esta chave não existe mais.");
+    }
+
+    if (keyDoc.data().status === "borrowed") {
+      throw new Error(
+        "Não é possível excluir esta chave enquanto ela estiver emprestada. Registre a devolução da chave antes de excluí-la."
+      );
+    }
+
+    transaction.delete(keyRef);
+  });
 }
 
 const peopleCollection = collection(db, "people");
+const movementsCollection = collection(db, "movements");
 
 export async function addPerson(personData) {
   const docRef = await addDoc(peopleCollection, {
@@ -65,11 +80,22 @@ export async function updatePerson(id, personData) {
 }
 
 export async function deletePerson(id) {
+  const activeByPersonQuery = query(
+    movementsCollection,
+    where("personId", "==", id),
+    where("status", "==", "active")
+  );
+  const activeSnapshot = await getDocs(activeByPersonQuery);
+
+  if (!activeSnapshot.empty) {
+    throw new Error(
+      "Não é possível excluir esta pessoa enquanto ela estiver com uma chave emprestada. Registre a devolução da chave antes de excluir a pessoa."
+    );
+  }
+
   const personRef = doc(db, "people", id);
   await deleteDoc(personRef);
 }
-
-const movementsCollection = collection(db, "movements");
 
 export async function getActiveMovements() {
   const q = query(movementsCollection, where("status", "==", "active"));
@@ -115,6 +141,13 @@ export async function returnKey(movementId, keyId) {
     }
 
     const keyRef = doc(db, "keys", keyId);
+    const keyDoc = await transaction.get(keyRef);
+
+    if (!keyDoc.exists()) {
+      throw new Error(
+        "Esta chave não existe mais. Não é possível registrar a devolução."
+      );
+    }
 
     transaction.update(movementRef, {
       status: "returned",
