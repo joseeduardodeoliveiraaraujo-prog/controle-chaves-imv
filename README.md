@@ -47,11 +47,29 @@ npm install
 3. No [Firebase Console](https://console.firebase.google.com/):
    - Crie um novo projeto
    - Registre um app Web
-   - Copie as credenciais e substitua em `src/config/firebase.js`
+   - Copie as credenciais
    - Habilite **Authentication** > método **Email/Password**
    - Crie um **Firestore Database** (modo teste)
 
-4. Configure as **Firestore Security Rules**:
+4. Configure as variáveis de ambiente:
+
+```bash
+cd frontend
+cp .env.example .env
+```
+
+Edite o arquivo `frontend/.env` e preencha com suas credenciais do Firebase:
+
+```
+VITE_FIREBASE_API_KEY=sua-api-key
+VITE_FIREBASE_AUTH_DOMAIN=seu-projeto.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=seu-projeto
+VITE_FIREBASE_STORAGE_BUCKET=seu-projeto.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=000000000000
+VITE_FIREBASE_APP_ID=1:000000000000:web:0000000000000000000000
+```
+
+5. Configure as **Firestore Security Rules**:
    - No Firebase Console, vá em **Firestore Database** > aba **Rules**
    - Substitua o conteúdo pelo arquivo `firestore.rules` da raiz do projeto
    - Clique em **Publish**
