@@ -4,6 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { getKeys, getActiveMovements, returnKey } from "../services/firestore";
 import Modal from "../components/Modal";
 import WithdrawalForm from "../components/WithdrawalForm";
+import KeyCabinet from "../components/KeyCabinet";
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -12,6 +13,7 @@ export default function Dashboard() {
     borrowed: 0,
     overdue: 0,
   });
+  const [keys, setKeys] = useState([]);
   const [activeMovements, setActiveMovements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -46,6 +48,7 @@ export default function Dashboard() {
         overdue: overdueCount,
       });
 
+      setKeys(keys);
       setActiveMovements(movements);
     } catch {
       // Silently handle errors for now
@@ -126,6 +129,8 @@ export default function Dashboard() {
                 <span className="stat-label">Atrasadas</span>
               </div>
             </div>
+
+            <KeyCabinet keys={keys} movements={activeMovements} />
 
             <section className="movements-section">
               <h3>Chaves Emprestadas</h3>
