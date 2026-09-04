@@ -418,10 +418,22 @@
 .list-section h2 {
   font-size: 16px;
   font-weight: 600;
+  color: #0f172a;
+  margin: 0;
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
   padding-bottom: 12px;
   border-bottom: 1px solid #e2e8f0;
-  color: #0f172a;
+}
+
+.organize-actions {
+  display: flex;
+  gap: 8px;
 }
 
 /* ========================================
@@ -543,6 +555,135 @@
 .btn-primary:hover {
   background-color: #1d4ed8;
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
+.btn-organize {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background-color: #2563eb;
+  color: white;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-organize:hover:not(:disabled) {
+  background-color: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.btn-organize:disabled {
+  background-color: #93c5fd;
+  border-color: #93c5fd;
+  cursor: not-allowed;
+}
+
+.btn-save-organize {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background-color: #059669;
+  color: white;
+  border: 1px solid #059669;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-save-organize:hover {
+  background-color: #047857;
+  border-color: #047857;
+}
+
+.btn-cancel-organize {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background-color: white;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-cancel-organize:hover {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.btn-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+/* ========================================
+   DRAG AND DROP
+   ======================================== */
+
+.keys-list-sortable .key-card {
+  cursor: default;
+}
+
+.drag-zone {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background-color: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  cursor: grab;
+  user-select: none;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.drag-zone:hover {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.drag-zone:active {
+  cursor: grabbing;
+}
+
+.drag-zone-grip {
+  font-size: 16px;
+  line-height: 1;
+  color: #94a3b8;
+  letter-spacing: -2px;
+}
+
+.drag-zone:hover .drag-zone-grip {
+  color: #475569;
+}
+
+.drag-zone-label {
+  font-size: 12px;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.drag-zone:hover .drag-zone-label {
+  color: #64748b;
+}
+
+.key-card-dragging {
+  border-color: #2563eb;
+  background-color: #f8fafc;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
 }
 
 /* ========================================
@@ -1412,6 +1553,11 @@
   .key-actions {
     width: 100%;
     justify-content: flex-end;
+  }
+
+  .drag-zone {
+    width: 100%;
+    justify-content: center;
   }
 
   .history-filters {

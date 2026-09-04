@@ -1,9 +1,80 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
-import { addKey, getKeys, updateKey, deleteKey } from "../services/firestore";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  addKey,
+  getKeys,
+  updateKey,
+  deleteKey,
+  migrateKeysOrder,
+  saveKeysOrder,
+} from "../services/firestore";
 
 const emptyForm = { name: "", location: "", description: "" };
+
+function SortableKeyCard({ item, isOrganizing, onEdit, onDelete }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : "auto",
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`key-card ${isDragging ? "key-card-dragging" : ""}`}
+    >
+      <div className="key-info">
+        <strong>{item.name}</strong>
+        <span>{item.location}</span>
+        {item.description && <span className="key-desc">{item.description}</span>}
+      </div>
+      {isOrganizing ? (
+        <div className="drag-zone" {...attributes} {...listeners}>
+          <span className="drag-zone-grip" aria-hidden="true">&#8942;&#8942;</span>
+          <span className="drag-zone-label">Arraste para mover</span>
+        </div>
+      ) : (
+        <div className="key-actions">
+          <span className={`status-badge ${item.status}`}>
+            {item.status === "available" ? "Disponível" : "Emprestada"}
+          </span>
+          <button className="btn-edit" onClick={() => onEdit(item)}>
+            Editar
+          </button>
+          <button className="btn-delete" onClick={() => onDelete(item.id)}>
+            Excluir
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Keys() {
   const [keys, setKeys] = useState([]);
@@ -12,9 +83,17 @@ export default function Keys() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
+  const [isOrganizing, setIsOrganizing] = useState(false);
+  const [originalKeysSnapshot, setOriginalKeysSnapshot] = useState([]);
 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+    }),
+  );
 
   useEffect(() => {
     loadKeys();
@@ -22,6 +101,7 @@ export default function Keys() {
 
   async function loadKeys() {
     try {
+      await migrateKeysOrder();
       const data = await getKeys();
       setKeys(data);
     } catch {
@@ -84,7 +164,7 @@ export default function Keys() {
       if (editingId) {
         await updateKey(editingId, trimmedForm);
       } else {
-        await addKey(trimmedForm);
+        await addKey(trimmedForm, keys.length);
       }
       setForm(emptyForm);
       setFieldErrors({});
@@ -116,6 +196,38 @@ export default function Keys() {
     } catch (err) {
       setError(err.message || "Erro ao excluir chave.");
     }
+  }
+
+  function handleStartOrganizing() {
+    setOriginalKeysSnapshot(keys.map((k) => ({ ...k })));
+    setIsOrganizing(true);
+  }
+
+  async function handleSaveOrganizing() {
+    try {
+      await saveKeysOrder(keys);
+      setIsOrganizing(false);
+      setOriginalKeysSnapshot([]);
+    } catch {
+      setError("Erro ao salvar a ordem das chaves.");
+    }
+  }
+
+  function handleCancelOrganizing() {
+    setKeys(originalKeysSnapshot);
+    setIsOrganizing(false);
+    setOriginalKeysSnapshot([]);
+  }
+
+  function handleDragEnd(event) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    setKeys((items) => {
+      const oldIndex = items.findIndex((k) => k.id === active.id);
+      const newIndex = items.findIndex((k) => k.id === over.id);
+      return arrayMove(items, oldIndex, newIndex);
+    });
   }
 
   async function handleLogout() {
@@ -202,7 +314,30 @@ export default function Keys() {
           </section>
 
           <section className="list-section">
-            <h2>Chaves Cadastradas ({keys.length})</h2>
+            <div className="list-header">
+              <h2>Chaves Cadastradas ({keys.length})</h2>
+              {!isOrganizing ? (
+                <button
+                  className="btn-organize"
+                  onClick={handleStartOrganizing}
+                  disabled={keys.length < 2}
+                >
+                  <span className="btn-icon" aria-hidden="true">&#9998;</span>
+                  Organizar ordem
+                </button>
+              ) : (
+                <div className="organize-actions">
+                  <button className="btn-save-organize" onClick={handleSaveOrganizing}>
+                    <span className="btn-icon" aria-hidden="true">&#10003;</span>
+                    Salvar alterações
+                  </button>
+                  <button className="btn-cancel-organize" onClick={handleCancelOrganizing}>
+                    <span className="btn-icon" aria-hidden="true">&#10005;</span>
+                    Cancelar
+                  </button>
+                </div>
+              )}
+            </div>
 
             {loading ? (
               <div className="loading-inline">
@@ -211,6 +346,29 @@ export default function Keys() {
               </div>
             ) : keys.length === 0 ? (
               <p className="empty-message">Nenhuma chave cadastrada ainda.</p>
+            ) : isOrganizing ? (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={keys.map((k) => k.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="keys-list keys-list-sortable">
+                    {keys.map((key) => (
+                      <SortableKeyCard
+                        key={key.id}
+                        item={key}
+                        isOrganizing={isOrganizing}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
             ) : (
               <div className="keys-list">
                 {keys.map((key) => (

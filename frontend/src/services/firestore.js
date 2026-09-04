@@ -9,15 +9,17 @@ import {
   query,
   where,
   runTransaction,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 
 const keysCollection = collection(db, "keys");
 
-export async function addKey(keyData) {
+export async function addKey(keyData, nextOrdem) {
   const docRef = await addDoc(keysCollection, {
     ...keyData,
     status: "available",
+    ordem: nextOrdem,
     createdAt: serverTimestamp(),
   });
   return docRef.id;
@@ -25,15 +27,59 @@ export async function addKey(keyData) {
 
 export async function getKeys() {
   const snapshot = await getDocs(keysCollection);
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
+  const keys = snapshot.docs.map((d) => ({
+    id: d.id,
+    ...d.data(),
   }));
+  return keys.sort((a, b) => (a.ordem ?? Infinity) - (b.ordem ?? Infinity));
+}
+
+export async function swapKeyOrder(id1, ordem1, id2, ordem2) {
+  const batch = writeBatch(db);
+  batch.update(doc(db, "keys", id1), { ordem: ordem2 });
+  batch.update(doc(db, "keys", id2), { ordem: ordem1 });
+  await batch.commit();
+}
+
+export async function migrateKeysOrder() {
+  const snapshot = await getDocs(keysCollection);
+  const keys = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+  const needsMigration = keys.some((k) => k.ordem === undefined || k.ordem === null);
+  if (!needsMigration) return;
+
+  keys.sort((a, b) => a.id.localeCompare(b.id));
+
+  const withOrder = keys.filter((k) => k.ordem !== undefined && k.ordem !== null);
+  const withoutOrder = keys.filter((k) => k.ordem === undefined || k.ordem === null);
+
+  const batch = writeBatch(db);
+
+  if (withOrder.length === 0) {
+    keys.forEach((key, index) => {
+      batch.update(doc(db, "keys", key.id), { ordem: index });
+    });
+  } else {
+    const maxOrdem = Math.max(...withOrder.map((k) => k.ordem));
+    withoutOrder.forEach((key, index) => {
+      batch.update(doc(db, "keys", key.id), { ordem: maxOrdem + index + 1 });
+    });
+  }
+
+  await batch.commit();
 }
 
 export async function updateKey(id, keyData) {
   const keyRef = doc(db, "keys", id);
   await updateDoc(keyRef, keyData);
+}
+
+export async function saveKeysOrder(orderedKeys) {
+  const batch = writeBatch(db);
+  orderedKeys.forEach((key, index) => {
+    batch.update(doc(db, "keys", key.id), { ordem: index });
+  });
+  await batch.commit();
 }
 
 export async function deleteKey(id) {
@@ -53,6 +99,18 @@ export async function deleteKey(id) {
 
     transaction.delete(keyRef);
   });
+
+  const snapshot = await getDocs(keysCollection);
+  const remaining = snapshot.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .filter((k) => k.ordem !== undefined && k.ordem !== null)
+    .sort((a, b) => a.ordem - b.ordem);
+
+  const batch = writeBatch(db);
+  remaining.forEach((key, index) => {
+    batch.update(doc(db, "keys", key.id), { ordem: index });
+  });
+  await batch.commit();
 }
 
 const peopleCollection = collection(db, "people");
