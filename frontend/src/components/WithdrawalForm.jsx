@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { getKeys, getPeople, withdrawKey } from "../services/firestore";
+import SearchableSelect from "./SearchableSelect";
 
 export default function WithdrawalForm({ onSuccess, onCancel }) {
   const [keys, setKeys] = useState([]);
@@ -73,35 +74,33 @@ export default function WithdrawalForm({ onSuccess, onCancel }) {
         <p className="empty-message">Nenhuma chave disponível para retirada.</p>
       ) : (
         <>
-          <label htmlFor="key">Chave</label>
-          <select
+          <SearchableSelect
             id="key"
+            label="Chave"
+            placeholder="Pesquisar chave..."
+            emptyMessage="Nenhuma chave encontrada."
+            options={keys}
             value={selectedKey}
-            onChange={(e) => setSelectedKey(e.target.value)}
-            required
-          >
-            <option value="">Selecione uma chave</option>
-            {keys.map((key) => (
-              <option key={key.id} value={key.id}>
-                {key.name} — {key.location}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedKey}
+            searchFields={["name", "location"]}
+            getIcon={() => "🔑"}
+            getTitle={(k) => k.name}
+            getSubtitle={(k) => k.location}
+          />
 
-          <label htmlFor="person">Pessoa</label>
-          <select
+          <SearchableSelect
             id="person"
+            label="Pessoa"
+            placeholder="Pesquisar pessoa..."
+            emptyMessage="Nenhuma pessoa encontrada."
+            options={people}
             value={selectedPerson}
-            onChange={(e) => setSelectedPerson(e.target.value)}
-            required
-          >
-            <option value="">Selecione uma pessoa</option>
-            {people.map((person) => (
-              <option key={person.id} value={person.id}>
-                {person.name} {person.sector ? `(${person.sector})` : ""}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedPerson}
+            searchFields={["name", "sector"]}
+            getIcon={() => "👤"}
+            getTitle={(p) => p.name}
+            getSubtitle={(p) => p.sector || ""}
+          />
 
           <label htmlFor="expectedDate">Previsão de Devolução</label>
           <input
