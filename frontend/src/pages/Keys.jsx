@@ -26,6 +26,8 @@ import {
 
 const emptyForm = { name: "", location: "", description: "" };
 
+const LIMITS = { name: 50, location: 50, description: 80 };
+
 function SortableKeyCard({ item, isOrganizing, onEdit, onDelete }) {
   const {
     attributes,
@@ -127,18 +129,18 @@ export default function Keys() {
 
     if (!name) {
       errors.name = "Nome é obrigatório.";
-    } else if (name.length < 3 || name.length > 50) {
-      errors.name = "Nome deve ter entre 3 e 50 caracteres.";
+    } else if (name.length < 3 || name.length > LIMITS.name) {
+      errors.name = `Nome deve ter entre 3 e ${LIMITS.name} caracteres.`;
     }
 
     if (!location) {
       errors.location = "Local é obrigatório.";
-    } else if (location.length < 2 || location.length > 80) {
-      errors.location = "Local deve ter entre 2 e 80 caracteres.";
+    } else if (location.length < 2 || location.length > LIMITS.location) {
+      errors.location = `Local deve ter entre 2 e ${LIMITS.location} caracteres.`;
     }
 
-    if (description.length > 200) {
-      errors.description = "Descrição deve possuir no máximo 200 caracteres.";
+    if (description.length > LIMITS.description) {
+      errors.description = `Descrição deve possuir no máximo ${LIMITS.description} caracteres.`;
     }
 
     return errors;
@@ -261,7 +263,10 @@ export default function Keys() {
             {error && <div className="error">{error}</div>}
 
             <form onSubmit={handleSubmit}>
-              <label htmlFor="name">Nome/Identificação</label>
+              <label htmlFor="name">
+                Nome/Identificação
+                <span className="char-count">{form.name.length}/{LIMITS.name}</span>
+              </label>
               <input
                 id="name"
                 name="name"
@@ -269,12 +274,15 @@ export default function Keys() {
                 placeholder="Ex: Sala 5"
                 value={form.name}
                 onChange={handleChange}
-                maxLength={50}
+                maxLength={LIMITS.name}
                 className={fieldErrors.name ? "input-error" : ""}
               />
               {fieldErrors.name && <span className="field-error">{fieldErrors.name}</span>}
 
-              <label htmlFor="location">Local</label>
+              <label htmlFor="location">
+                Local
+                <span className="char-count">{form.location.length}/{LIMITS.location}</span>
+              </label>
               <input
                 id="location"
                 name="location"
@@ -282,12 +290,15 @@ export default function Keys() {
                 placeholder="Ex: Bloco A"
                 value={form.location}
                 onChange={handleChange}
-                maxLength={80}
+                maxLength={LIMITS.location}
                 className={fieldErrors.location ? "input-error" : ""}
               />
               {fieldErrors.location && <span className="field-error">{fieldErrors.location}</span>}
 
-              <label htmlFor="description">Descrição</label>
+              <label htmlFor="description">
+                Descrição
+                <span className="char-count">{form.description.length}/{LIMITS.description}</span>
+              </label>
               <input
                 id="description"
                 name="description"
@@ -295,7 +306,7 @@ export default function Keys() {
                 placeholder="Ex: Chave principal da Sala 5"
                 value={form.description}
                 onChange={handleChange}
-                maxLength={200}
+                maxLength={LIMITS.description}
                 className={fieldErrors.description ? "input-error" : ""}
               />
               {fieldErrors.description && <span className="field-error">{fieldErrors.description}</span>}

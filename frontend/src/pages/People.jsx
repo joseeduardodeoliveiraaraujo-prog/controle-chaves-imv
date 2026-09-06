@@ -7,18 +7,11 @@ import {
   updatePerson,
   deletePerson,
 } from "../services/firestore";
+import { formatPhone } from "../utils/format";
 
 const emptyForm = { name: "", phone: "", email: "", sector: "" };
 
-function formatPhone(digits) {
-  if (digits.length === 0) return "";
-  if (digits.length <= 2) return `(${digits}`;
-  const ddd = digits.slice(0, 2);
-  const number = digits.slice(2);
-  if (number.length <= 4) return `(${ddd}) ${number}`;
-  if (digits.length <= 10) return `(${ddd}) ${number.slice(0, 4)}-${number.slice(4)}`;
-  return `(${ddd}) ${number.slice(0, 5)}-${number.slice(5)}`;
-}
+const LIMITS = { name: 100, phone: 11, email: 80, sector: 80 };
 
 export default function People() {
   const [people, setPeople] = useState([]);
@@ -182,7 +175,10 @@ export default function People() {
             {error && <div className="error">{error}</div>}
 
             <form onSubmit={handleSubmit}>
-              <label htmlFor="name">Nome</label>
+              <label htmlFor="name">
+                Nome
+                <span className="char-count">{form.name.length}/{LIMITS.name}</span>
+              </label>
               <input
                 id="name"
                 name="name"
@@ -190,12 +186,15 @@ export default function People() {
                 placeholder="Ex: João Silva"
                 value={form.name}
                 onChange={handleChange}
-                maxLength={100}
+                maxLength={LIMITS.name}
                 className={fieldErrors.name ? "input-error" : ""}
               />
               {fieldErrors.name && <span className="field-error">{fieldErrors.name}</span>}
 
-              <label htmlFor="phone">Telefone</label>
+              <label htmlFor="phone">
+                Telefone
+                <span className="char-count">{form.phone.replace(/\D/g, "").length}/{LIMITS.phone}</span>
+              </label>
               <input
                 id="phone"
                 name="phone"
@@ -208,7 +207,10 @@ export default function People() {
               />
               {fieldErrors.phone && <span className="field-error">{fieldErrors.phone}</span>}
 
-              <label htmlFor="email">Email</label>
+              <label htmlFor="email">
+                Email
+                <span className="char-count">{form.email.length}/{LIMITS.email}</span>
+              </label>
               <input
                 id="email"
                 name="email"
@@ -216,11 +218,15 @@ export default function People() {
                 placeholder="Opcional"
                 value={form.email}
                 onChange={handleChange}
+                maxLength={LIMITS.email}
                 className={fieldErrors.email ? "input-error" : ""}
               />
               {fieldErrors.email && <span className="field-error">{fieldErrors.email}</span>}
 
-              <label htmlFor="sector">Setor</label>
+              <label htmlFor="sector">
+                Setor
+                <span className="char-count">{form.sector.length}/{LIMITS.sector}</span>
+              </label>
               <input
                 id="sector"
                 name="sector"
@@ -228,7 +234,7 @@ export default function People() {
                 placeholder="Ex: TI, Administração"
                 value={form.sector}
                 onChange={handleChange}
-                maxLength={80}
+                maxLength={LIMITS.sector}
                 className={fieldErrors.sector ? "input-error" : ""}
               />
               {fieldErrors.sector && <span className="field-error">{fieldErrors.sector}</span>}

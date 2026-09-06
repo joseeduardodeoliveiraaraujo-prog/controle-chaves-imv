@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
-import { getAllMovements } from "../services/firestore";
+import { getAllMovements, getPeople } from "../services/firestore";
+import { formatPhone } from "../utils/format";
 
 export default function History() {
   const [movements, setMovements] = useState([]);
+  const [people, setPeople] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFrom, setDateFrom] = useState("");
@@ -19,13 +21,17 @@ export default function History() {
 
   async function loadHistory() {
     try {
-      const data = await getAllMovements();
-      data.sort((a, b) => {
+      const [movementsData, peopleData] = await Promise.all([
+        getAllMovements(),
+        getPeople(),
+      ]);
+      movementsData.sort((a, b) => {
         const dateA = a.borrowedAt?.toDate() || new Date(0);
         const dateB = b.borrowedAt?.toDate() || new Date(0);
         return dateB - dateA;
       });
-      setMovements(data);
+      setMovements(movementsData);
+      setPeople(peopleData);
     } catch {
       // handle error
     } finally {
@@ -70,6 +76,19 @@ export default function History() {
     });
   }, [movements, searchTerm, dateFrom, dateTo]);
 
+  const peopleById = useMemo(() => {
+    const map = new Map();
+    people.forEach((p) => map.set(p.id, p));
+    return map;
+  }, [people]);
+
+  function getPhone(movement) {
+    const person = peopleById.get(movement.personId);
+    const phone = (person?.phone || "").replace(/\D/g, "");
+    if (!phone) return "-";
+    return formatPhone(phone);
+  }
+
   const hasActiveFilters = searchTerm.trim() !== "" || dateFrom !== "" || dateTo !== "";
 
   function clearFilters() {
@@ -96,7 +115,7 @@ export default function History() {
         </div>
       </header>
 
-      <main className="page-main">
+      <main className="page-main history-main">
         <h2>Histórico de Movimentações</h2>
         <p className="subtitle">Todas as retiradas e devoluções registradas.</p>
 
@@ -154,8 +173,10 @@ export default function History() {
             <table className="history-table">
               <thead>
                 <tr>
+                  <th>Ordem</th>
                   <th>Chave</th>
                   <th>Pessoa</th>
+                  <th>Telefone</th>
                   <th>Retirada</th>
                   <th>Previsão</th>
                   <th>Devolução</th>
@@ -163,7 +184,7 @@ export default function History() {
                 </tr>
               </thead>
               <tbody>
-                {filteredMovements.map((m) => {
+                {filteredMovements.map((m, index) => {
                   const now = new Date();
                   const isOverdue =
                     m.status === "active" &&
@@ -172,11 +193,17 @@ export default function History() {
 
                   return (
                     <tr key={m.id} className={isOverdue ? "row-overdue" : ""}>
-                      <td>{m.keyName}</td>
-                      <td>{m.personName}</td>
-                      <td>{formatTimestamp(m.borrowedAt)}</td>
-                      <td>{formatTimestamp(m.expectedReturnAt)}</td>
-                      <td>{m.returnedAt ? formatTimestamp(m.returnedAt) : "—"}</td>
+                      <td>{index + 1}</td>
+                      <td>
+                        <span className="truncate-cell key-name" title={m.keyName}>{m.keyName}</span>
+                      </td>
+                      <td>
+                        <span className="truncate-cell person-name" title={m.personName}>{m.personName}</span>
+                      </td>
+                      <td className="nowrap">{getPhone(m)}</td>
+                      <td className="nowrap">{formatTimestamp(m.borrowedAt)}</td>
+                      <td className="nowrap">{formatTimestamp(m.expectedReturnAt)}</td>
+                      <td className="nowrap">{m.returnedAt ? formatTimestamp(m.returnedAt) : "—"}</td>
                       <td>
                         <span className={`status-badge ${isOverdue ? "overdue" : m.status === "active" ? "borrowed" : "available"}`}>
                           {isOverdue ? "Atrasada" : m.status === "active" ? "Em uso" : "Devolvida"}
