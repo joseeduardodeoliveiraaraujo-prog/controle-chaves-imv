@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import {
@@ -87,6 +87,7 @@ export default function Keys() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [isOrganizing, setIsOrganizing] = useState(false);
   const [originalKeysSnapshot, setOriginalKeysSnapshot] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -202,6 +203,7 @@ export default function Keys() {
 
   function handleStartOrganizing() {
     setOriginalKeysSnapshot(keys.map((k) => ({ ...k })));
+    setSearchTerm("");
     setIsOrganizing(true);
   }
 
@@ -231,6 +233,16 @@ export default function Keys() {
       return arrayMove(items, oldIndex, newIndex);
     });
   }
+
+  const filteredKeys = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return keys;
+    return keys.filter(
+      (k) =>
+        k.name?.toLowerCase().includes(term) ||
+        k.location?.toLowerCase().includes(term)
+    );
+  }, [keys, searchTerm]);
 
   async function handleLogout() {
     await logout();
@@ -350,6 +362,23 @@ export default function Keys() {
               )}
             </div>
 
+            {keys.length > 0 && !isOrganizing && (
+              <div className="list-search">
+                <span className="search-icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  placeholder="Buscar por nome ou local..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            )}
+
             {loading ? (
               <div className="loading-inline">
                 <div className="spinner"></div>
@@ -380,9 +409,11 @@ export default function Keys() {
                   </div>
                 </SortableContext>
               </DndContext>
+            ) : filteredKeys.length === 0 ? (
+              <p className="empty-message">Nenhuma chave encontrada para a pesquisa.</p>
             ) : (
               <div className="keys-list">
-                {keys.map((key) => (
+                {filteredKeys.map((key) => (
                   <div key={key.id} className="key-card">
                     <div className="key-info">
                       <strong>{key.name}</strong>

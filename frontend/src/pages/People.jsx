@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import {
@@ -20,6 +20,7 @@ export default function People() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
+  const [searchTerm, setSearchTerm] = useState("");
 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -149,6 +150,18 @@ export default function People() {
     navigate("/login");
   }
 
+  const filteredPeople = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return people;
+    const termDigits = searchTerm.replace(/\D/g, "");
+    return people.filter((p) => {
+      const matchName = p.name?.toLowerCase().includes(term);
+      const matchSector = p.sector?.toLowerCase().includes(term);
+      const matchPhone = termDigits !== "" && p.phone?.includes(termDigits);
+      return matchName || matchSector || matchPhone;
+    });
+  }, [people, searchTerm]);
+
   return (
     <div className="page-container">
       <header className="page-header">
@@ -255,6 +268,23 @@ export default function People() {
           <section className="list-section">
             <h2>Pessoas Cadastradas ({people.length})</h2>
 
+            {people.length > 0 && (
+              <div className="list-search">
+                <span className="search-icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  placeholder="Buscar por nome, telefone ou setor..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            )}
+
             {loading ? (
               <div className="loading-inline">
                 <div className="spinner"></div>
@@ -262,9 +292,11 @@ export default function People() {
               </div>
             ) : people.length === 0 ? (
               <p className="empty-message">Nenhuma pessoa cadastrada ainda.</p>
+            ) : filteredPeople.length === 0 ? (
+              <p className="empty-message">Nenhuma pessoa encontrada para a pesquisa.</p>
             ) : (
               <div className="keys-list">
-                {people.map((person) => (
+                {filteredPeople.map((person) => (
                   <div key={person.id} className="key-card">
                     <div className="key-info">
                       <strong>{person.name}</strong>
