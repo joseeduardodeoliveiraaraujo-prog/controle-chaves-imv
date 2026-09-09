@@ -83,6 +83,9 @@ export default function History() {
   }, [people]);
 
   function getPhone(movement) {
+    if (movement.personPhone) {
+      return formatPhone(String(movement.personPhone).replace(/\D/g, ""));
+    }
     const person = peopleById.get(movement.personId);
     const phone = (person?.phone || "").replace(/\D/g, "");
     if (!phone) return "-";

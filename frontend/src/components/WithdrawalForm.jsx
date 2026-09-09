@@ -1,16 +1,23 @@
 import { useState, useEffect } from "react";
 import { getKeys, getPeople, withdrawKey } from "../services/firestore";
+import { formatPhone } from "../utils/format";
 import SearchableSelect from "./SearchableSelect";
+
+const STUDENT_PERSON_ID = "aluno-nao-cadastrado";
 
 export default function WithdrawalForm({ onSuccess, onCancel }) {
   const [keys, setKeys] = useState([]);
   const [people, setPeople] = useState([]);
   const [selectedKey, setSelectedKey] = useState("");
   const [selectedPerson, setSelectedPerson] = useState("");
+  const [isStudent, setIsStudent] = useState(false);
+  const [studentName, setStudentName] = useState("");
+  const [studentPhone, setStudentPhone] = useState("");
   const [expectedDate, setExpectedDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     async function loadData() {
@@ -30,24 +37,112 @@ export default function WithdrawalForm({ onSuccess, onCancel }) {
     loadData();
   }, []);
 
+  function handlePersonChange(id) {
+    setSelectedPerson(id);
+    setIsStudent(false);
+    setFieldErrors({});
+    setError("");
+    setStudentName("");
+    setStudentPhone("");
+  }
+
+  function handleStartStudent() {
+    setSelectedPerson("");
+    setIsStudent(true);
+    setFieldErrors({});
+    setError("");
+  }
+
+  function handleBackToPeople() {
+    setStudentName("");
+    setStudentPhone("");
+    setSelectedPerson("");
+    setIsStudent(false);
+    setFieldErrors({});
+    setError("");
+  }
+
+  function handleStudentChange(e) {
+    const { name, value } = e.target;
+    if (name === "studentPhone") {
+      const digits = value.replace(/\D/g, "").slice(0, 11);
+      setStudentPhone(formatPhone(digits));
+    } else {
+      setStudentName(value);
+    }
+    setFieldErrors((prev) => ({ ...prev, [name]: "" }));
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
-    setLoading(true);
 
     const key = keys.find((k) => k.id === selectedKey);
-    const person = people.find((p) => p.id === selectedPerson);
+    if (!key) {
+      setError("Selecione uma chave.");
+      return;
+    }
 
+    if (!expectedDate) {
+      setError("Informe a previsão de devolução.");
+      return;
+    }
+
+    const [year, month, day] = expectedDate.split("-").map(Number);
+    const expectedReturnDate = new Date(year, month - 1, day, 23, 59, 59);
+    if (Number.isNaN(expectedReturnDate.getTime())) {
+      setError("Data de devolução inválida.");
+      return;
+    }
+
+    let personId;
+    let personName;
+    let personPhone;
+    let personType;
+
+    if (isStudent) {
+      const errors = {};
+      const name = studentName.trim();
+      const phone = studentPhone.replace(/\D/g, "");
+      if (!name) {
+        errors.studentName = "Nome do aluno é obrigatório.";
+      } else if (name.length < 3 || name.length > 100) {
+        errors.studentName = "Nome deve ter entre 3 e 100 caracteres.";
+      }
+      if (!phone) {
+        errors.studentPhone = "Telefone é obrigatório.";
+      } else if (phone.length < 10 || phone.length > 11) {
+        errors.studentPhone = "Telefone deve possuir 10 ou 11 dígitos.";
+      }
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(errors);
+        return;
+      }
+      personId = STUDENT_PERSON_ID;
+      personName = name;
+      personPhone = phone;
+      personType = "student";
+    } else {
+      const person = people.find((p) => p.id === selectedPerson);
+      if (!person) {
+        setError("Selecione uma pessoa.");
+        return;
+      }
+      personId = person.id;
+      personName = person.name;
+      personPhone = (person.phone || "").replace(/\D/g, "");
+      personType = "registered";
+    }
+
+    setLoading(true);
     try {
-      const [year, month, day] = expectedDate.split("-").map(Number);
-      const expectedReturnDate = new Date(year, month - 1, day, 23, 59, 59);
-
       await withdrawKey(
         key.id,
         key.name,
-        person.id,
-        person.name,
-        expectedReturnDate
+        personId,
+        personName,
+        expectedReturnDate,
+        { personPhone, personType }
       );
       onSuccess();
     } catch (err) {
@@ -88,19 +183,80 @@ export default function WithdrawalForm({ onSuccess, onCancel }) {
             getSubtitle={(k) => k.location}
           />
 
-          <SearchableSelect
-            id="person"
-            label="Pessoa"
-            placeholder="Pesquisar pessoa..."
-            emptyMessage="Nenhuma pessoa encontrada."
-            options={people}
-            value={selectedPerson}
-            onChange={setSelectedPerson}
-            searchFields={["name", "sector"]}
-            getIcon={() => "👤"}
-            getTitle={(p) => p.name}
-            getSubtitle={(p) => p.sector || ""}
-          />
+          {!isStudent && (
+            <>
+              <SearchableSelect
+                id="person"
+                label="Pessoa"
+                placeholder="Pesquisar pessoa..."
+                emptyMessage="Nenhuma pessoa encontrada."
+                options={people}
+                value={selectedPerson}
+                onChange={handlePersonChange}
+                searchFields={["name", "sector"]}
+                getIcon={() => "👤"}
+                getTitle={(p) => p.name}
+                getSubtitle={(p) => p.sector || ""}
+              />
+
+              <button
+                type="button"
+                className="student-mode-btn"
+                onClick={handleStartStudent}
+              >
+                <span className="student-mode-btn-icon" aria-hidden="true">🎓</span>
+                <span>Aluno não cadastrado</span>
+              </button>
+            </>
+          )}
+
+          {isStudent && (
+            <div className="student-panel">
+              <div className="student-note">
+                <span className="student-badge">🎓 Aluno não cadastrado</span>
+                <span>Nome e telefone serão salvos apenas neste registro do histórico.</span>
+              </div>
+
+              <label htmlFor="studentName">Nome do aluno</label>
+              <input
+                id="studentName"
+                name="studentName"
+                type="text"
+                value={studentName}
+                onChange={handleStudentChange}
+                maxLength={100}
+                placeholder="Ex: João da Silva"
+                className={fieldErrors.studentName ? "input-error" : ""}
+              />
+              {fieldErrors.studentName && (
+                <span className="field-error">{fieldErrors.studentName}</span>
+              )}
+
+              <label htmlFor="studentPhone">Telefone</label>
+              <input
+                id="studentPhone"
+                name="studentPhone"
+                type="tel"
+                inputMode="numeric"
+                value={studentPhone}
+                onChange={handleStudentChange}
+                placeholder="(91) 98765-4321"
+                className={fieldErrors.studentPhone ? "input-error" : ""}
+              />
+              {fieldErrors.studentPhone && (
+                <span className="field-error">{fieldErrors.studentPhone}</span>
+              )}
+
+              <button
+                type="button"
+                className="btn-back-people"
+                onClick={handleBackToPeople}
+              >
+                <span aria-hidden="true">←</span>
+                Voltar para pessoas cadastradas
+              </button>
+            </div>
+          )}
 
           <label htmlFor="expectedDate">Previsão de Devolução</label>
           <input

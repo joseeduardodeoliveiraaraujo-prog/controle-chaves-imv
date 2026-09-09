@@ -539,6 +539,80 @@
   margin-bottom: 14px;
 }
 
+.student-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  background-color: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  color: #92400e;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.student-badge {
+  background-color: #f59e0b;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.student-mode-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  background-color: #fffbeb;
+  border: 1px dashed #f59e0b;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #92400e;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.student-mode-btn:hover {
+  background-color: #fef3c7;
+  border-color: #d97706;
+}
+
+.student-mode-btn-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.btn-back-people {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 6px 0;
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.btn-back-people:hover {
+  color: #2563eb;
+}
+
 /* ========================================
    BUTTONS
    ======================================== */
@@ -930,7 +1004,7 @@
   background: white;
   border-radius: 12px;
   width: 100%;
-  max-width: 480px;
+  max-width: 520px;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
@@ -1089,7 +1163,7 @@
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  max-height: 220px;
+  max-height: 300px;
   overflow-y: auto;
   margin: 0;
   padding: 4px;

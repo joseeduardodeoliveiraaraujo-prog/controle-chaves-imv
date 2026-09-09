@@ -164,7 +164,16 @@ export async function getActiveMovements() {
   }));
 }
 
-export async function withdrawKey(keyId, keyName, personId, personName, expectedReturnAt) {
+export async function withdrawKey(
+  keyId,
+  keyName,
+  personId,
+  personName,
+  expectedReturnAt,
+  options = {}
+) {
+  const { personPhone = "", personType = "registered" } = options;
+
   await runTransaction(db, async (transaction) => {
     const keyRef = doc(db, "keys", keyId);
     const keyDoc = await transaction.get(keyRef);
@@ -179,6 +188,8 @@ export async function withdrawKey(keyId, keyName, personId, personName, expected
       keyName,
       personId,
       personName,
+      personPhone: personPhone || null,
+      personType,
       borrowedAt: serverTimestamp(),
       expectedReturnAt,
       returnedAt: null,
