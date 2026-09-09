@@ -4,6 +4,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { getAllMovements, getPeople } from "../services/firestore";
 import { formatPhone } from "../utils/format";
 
+const PAGE_SIZE = 20;
+
 export default function History() {
   const [movements, setMovements] = useState([]);
   const [people, setPeople] = useState([]);
@@ -11,6 +13,7 @@ export default function History() {
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -75,6 +78,27 @@ export default function History() {
       return true;
     });
   }, [movements, searchTerm, dateFrom, dateTo]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, dateFrom, dateTo]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredMovements.length / PAGE_SIZE)
+  );
+  const pageMovements = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredMovements.slice(start, start + PAGE_SIZE);
+  }, [filteredMovements, currentPage]);
+
+  const paginationStart = filteredMovements.length
+    ? (currentPage - 1) * PAGE_SIZE + 1
+    : 0;
+  const paginationEnd = Math.min(
+    currentPage * PAGE_SIZE,
+    filteredMovements.length
+  );
 
   const peopleById = useMemo(() => {
     const map = new Map();
@@ -180,52 +204,89 @@ export default function History() {
         ) : filteredMovements.length === 0 ? (
           <p className="empty-message">Nenhuma movimentação encontrada para os filtros selecionados.</p>
         ) : (
-          <div className="history-table-wrapper">
-            <table className="history-table">
-              <thead>
-                <tr>
-                  <th>Ordem</th>
-                  <th>Chave</th>
-                  <th>Pessoa</th>
-                  <th>Telefone</th>
-                  <th>Retirada</th>
-                  <th>Previsão</th>
-                  <th>Devolução</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredMovements.map((m, index) => {
-                  const now = new Date();
-                  const isOverdue =
-                    m.status === "active" &&
-                    m.expectedReturnAt &&
-                    m.expectedReturnAt.toDate() < now;
+          <>
+            <div className="history-table-wrapper">
+              <table className="history-table">
+                <thead>
+                  <tr>
+                    <th>Ordem</th>
+                    <th>Chave</th>
+                    <th>Pessoa</th>
+                    <th>Telefone</th>
+                    <th>Retirada</th>
+                    <th>Previsão</th>
+                    <th>Devolução</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageMovements.map((m, index) => {
+                    const now = new Date();
+                    const isOverdue =
+                      m.status === "active" &&
+                      m.expectedReturnAt &&
+                      m.expectedReturnAt.toDate() < now;
 
-                  return (
-                    <tr key={m.id} className={isOverdue ? "row-overdue" : ""}>
-                      <td>{index + 1}</td>
-                      <td>
-                        <span className="truncate-cell key-name" title={m.keyName}>{m.keyName}</span>
-                      </td>
-                      <td>
-                        <span className="truncate-cell person-name" title={m.personName}>{m.personName}</span>
-                      </td>
-                      <td className="nowrap">{getPhone(m)}</td>
-                      <td className="nowrap">{formatTimestamp(m.borrowedAt)}</td>
-                      <td className="nowrap">{formatTimestamp(m.expectedReturnAt)}</td>
-                      <td className="nowrap">{m.returnedAt ? formatTimestamp(m.returnedAt) : "—"}</td>
-                      <td>
-                        <span className={`status-badge ${isOverdue ? "overdue" : m.status === "active" ? "borrowed" : "available"}`}>
-                          {isOverdue ? "Atrasada" : m.status === "active" ? "Em uso" : "Devolvida"}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                    return (
+                      <tr key={m.id} className={isOverdue ? "row-overdue" : ""}>
+                        <td>{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
+                        <td>
+                          <span className="truncate-cell key-name" title={m.keyName}>{m.keyName}</span>
+                        </td>
+                        <td>
+                          <span className="truncate-cell person-name" title={m.personName}>{m.personName}</span>
+                        </td>
+                        <td className="nowrap">{getPhone(m)}</td>
+                        <td className="nowrap">{formatTimestamp(m.borrowedAt)}</td>
+                        <td className="nowrap">{formatTimestamp(m.expectedReturnAt)}</td>
+                        <td className="nowrap">{m.returnedAt ? formatTimestamp(m.returnedAt) : "—"}</td>
+                        <td>
+                          <span className={`status-badge ${isOverdue ? "overdue" : m.status === "active" ? "borrowed" : "available"}`}>
+                            {isOverdue ? "Atrasada" : m.status === "active" ? "Em uso" : "Devolvida"}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="history-pagination-bar">
+              <span className="pagination-info">
+                Exibindo {paginationStart}–{paginationEnd} de {filteredMovements.length} registro{filteredMovements.length === 1 ? "" : "s"}
+              </span>
+              {totalPages > 1 && (
+                <nav className="pagination" aria-label="Paginação">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Anterior
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      className={`pagination-item ${currentPage === n ? "active" : ""}`}
+                      aria-current={currentPage === n ? "page" : undefined}
+                      onClick={() => setCurrentPage(n)}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Próxima
+                  </button>
+                </nav>
+              )}
+            </div>
+          </>
         )}
       </main>
     </div>

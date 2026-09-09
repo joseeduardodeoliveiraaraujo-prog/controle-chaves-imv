@@ -566,51 +566,114 @@
   flex-shrink: 0;
 }
 
-.student-mode-btn {
+/* ========================================
+   WITHDRAWAL FORM (Retirar Chave)
+   ======================================== */
+
+.withdrawal-form .searchable-select {
+  margin-bottom: 16px;
+}
+
+.withdrawal-form input[type="date"] {
+  margin-bottom: 0;
+}
+
+.withdrawal-form .segmented-control {
+  margin-bottom: 16px;
+}
+
+.withdrawal-section {
+  padding: 14px 0;
+  border-top: 1px solid #eef2f6;
+}
+
+.withdrawal-section:first-of-type {
+  border-top: none;
+}
+
+.withdrawal-section-head {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
-  width: 100%;
-  padding: 10px 14px;
-  margin-bottom: 16px;
-  background-color: #fffbeb;
-  border: 1px dashed #f59e0b;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #92400e;
-  cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  margin-bottom: 12px;
 }
 
-.student-mode-btn:hover {
-  background-color: #fef3c7;
-  border-color: #d97706;
-}
-
-.student-mode-btn-icon {
-  font-size: 16px;
-  line-height: 1;
-}
-
-.btn-back-people {
+.withdrawal-step {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background: none;
-  border: none;
-  padding: 6px 0;
-  margin-top: 4px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #475569;
-  cursor: pointer;
-  transition: color 0.15s ease;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background-color: #dbeafe;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
 }
 
-.btn-back-people:hover {
+.withdrawal-section-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  letter-spacing: 0.2px;
+}
+
+/* ========================================
+   SEGMENTED CONTROL (Tipo de Responsável)
+   ======================================== */
+
+.segmented-control {
+  display: flex;
+  width: 100%;
+  padding: 4px;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  gap: 4px;
+}
+
+.segmented-control-item {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.segmented-control-item:hover {
+  color: #334155;
+}
+
+.segmented-control-item.active {
+  background-color: white;
   color: #2563eb;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.withdrawal-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding-top: 16px;
+  margin-top: 4px;
+  border-top: 1px solid #eef2f6;
+}
+
+.withdrawal-footer button {
+  min-width: 120px;
+}
+
+.withdrawal-footer button[type="submit"] {
+  min-width: 200px;
 }
 
 /* ========================================
@@ -1073,13 +1136,28 @@
 
 .searchable-select-field input {
   width: 100%;
-  padding: 10px 14px;
+  padding: 10px 14px 10px 36px;
+  margin-bottom: 0;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   font-size: 14px;
   background-color: white;
   color: #0f172a;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.searchable-select-search-icon {
+  position: absolute;
+  left: 11px;
+  top: 0;
+  bottom: 0;
+  margin: auto 0;
+  display: flex;
+  align-items: center;
+  height: fit-content;
+  color: #94a3b8;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .searchable-select-field input::placeholder {
@@ -1673,6 +1751,59 @@
 
 .history-table .row-overdue:hover {
   background-color: #fee2e2;
+}
+
+.history-pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 0 2px;
+}
+
+.pagination-info {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.pagination button {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background-color: white;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.pagination button:hover:not(:disabled) {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.pagination button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pagination button.pagination-item.active {
+  background-color: #2563eb;
+  border-color: #2563eb;
+  color: white;
+  font-weight: 600;
 }
 
 /* ========================================

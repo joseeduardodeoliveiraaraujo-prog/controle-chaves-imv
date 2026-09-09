@@ -12,6 +12,7 @@ export default function SearchableSelect({
   getIcon,
   getTitle,
   getSubtitle,
+  hideLabel = false,
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [open, setOpen] = useState(false);
@@ -105,25 +106,33 @@ export default function SearchableSelect({
 
   return (
     <div className="searchable-select" ref={containerRef}>
-      <label htmlFor={id}>{label}</label>
+      {!hideLabel && <label htmlFor={id}>{label}</label>}
       <div className="searchable-select-field">
         {showSearchInput && (
-          <input
-            id={id}
-            ref={inputRef}
-            type="text"
-            value={searchTerm}
-            placeholder={placeholder}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setOpen(true);
-            }}
-            onKeyDown={handleKeyDown}
-            onFocus={() => setOpen(true)}
-            onBlur={() => setSearchActive(false)}
-            autoComplete="off"
-            required={!selected}
-          />
+          <>
+            <span className="searchable-select-search-icon" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </span>
+            <input
+              id={id}
+              ref={inputRef}
+              type="text"
+              value={searchTerm}
+              placeholder={placeholder}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setOpen(true);
+              }}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setOpen(true)}
+              onBlur={() => setSearchActive(false)}
+              autoComplete="off"
+              required={!selected}
+            />
+          </>
         )}
 
         {!showSearchInput && selected && (

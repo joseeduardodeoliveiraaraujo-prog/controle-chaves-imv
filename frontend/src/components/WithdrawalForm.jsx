@@ -10,7 +10,7 @@ export default function WithdrawalForm({ onSuccess, onCancel }) {
   const [people, setPeople] = useState([]);
   const [selectedKey, setSelectedKey] = useState("");
   const [selectedPerson, setSelectedPerson] = useState("");
-  const [isStudent, setIsStudent] = useState(false);
+  const [responsibleType, setResponsibleType] = useState("registered");
   const [studentName, setStudentName] = useState("");
   const [studentPhone, setStudentPhone] = useState("");
   const [expectedDate, setExpectedDate] = useState("");
@@ -18,6 +18,8 @@ export default function WithdrawalForm({ onSuccess, onCancel }) {
   const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
+
+  const isStudent = responsibleType === "student";
 
   useEffect(() => {
     async function loadData() {
@@ -37,27 +39,18 @@ export default function WithdrawalForm({ onSuccess, onCancel }) {
     loadData();
   }, []);
 
+  function handleTypeChange(type) {
+    if (type === responsibleType) return;
+    setResponsibleType(type);
+    setSelectedPerson("");
+    setStudentName("");
+    setStudentPhone("");
+    setFieldErrors({});
+    setError("");
+  }
+
   function handlePersonChange(id) {
     setSelectedPerson(id);
-    setIsStudent(false);
-    setFieldErrors({});
-    setError("");
-    setStudentName("");
-    setStudentPhone("");
-  }
-
-  function handleStartStudent() {
-    setSelectedPerson("");
-    setIsStudent(true);
-    setFieldErrors({});
-    setError("");
-  }
-
-  function handleBackToPeople() {
-    setStudentName("");
-    setStudentPhone("");
-    setSelectedPerson("");
-    setIsStudent(false);
     setFieldErrors({});
     setError("");
   }
@@ -162,32 +155,112 @@ export default function WithdrawalForm({ onSuccess, onCancel }) {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form className="withdrawal-form" onSubmit={handleSubmit}>
       {error && <div className="error">{error}</div>}
 
       {keys.length === 0 ? (
         <p className="empty-message">Nenhuma chave disponível para retirada.</p>
       ) : (
         <>
-          <SearchableSelect
-            id="key"
-            label="Chave"
-            placeholder="Pesquisar chave..."
-            emptyMessage="Nenhuma chave encontrada."
-            options={keys}
-            value={selectedKey}
-            onChange={setSelectedKey}
-            searchFields={["name", "location"]}
-            getIcon={() => "🔑"}
-            getTitle={(k) => k.name}
-            getSubtitle={(k) => k.location}
-          />
+          <section className="withdrawal-section">
+            <div className="withdrawal-section-head">
+              <span className="withdrawal-step" aria-hidden="true">1</span>
+              <h3 className="withdrawal-section-title">Chave</h3>
+            </div>
 
-          {!isStudent && (
-            <>
+            <SearchableSelect
+              id="key"
+              label="Chave"
+              hideLabel
+              placeholder="Pesquisar chave..."
+              emptyMessage="Nenhuma chave encontrada."
+              options={keys}
+              value={selectedKey}
+              onChange={setSelectedKey}
+              searchFields={["name", "location"]}
+              getIcon={() => "🔑"}
+              getTitle={(k) => k.name}
+              getSubtitle={(k) => k.location}
+            />
+          </section>
+
+          <section className="withdrawal-section">
+            <div className="withdrawal-section-head">
+              <span className="withdrawal-step" aria-hidden="true">2</span>
+              <h3 className="withdrawal-section-title">Responsável</h3>
+            </div>
+
+            <div
+              className="segmented-control"
+              role="tablist"
+              aria-label="Tipo de responsável"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={responsibleType === "registered"}
+                className={`segmented-control-item ${
+                  responsibleType === "registered" ? "active" : ""
+                }`}
+                onClick={() => handleTypeChange("registered")}
+              >
+                Servidor / Professor
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={responsibleType === "student"}
+                className={`segmented-control-item ${
+                  responsibleType === "student" ? "active" : ""
+                }`}
+                onClick={() => handleTypeChange("student")}
+              >
+                Aluno
+              </button>
+            </div>
+
+            {isStudent ? (
+              <>
+                <div className="student-note">
+                  <span className="student-badge">Aluno não cadastrado</span>
+                  <span>Os dados serão salvos apenas neste registro.</span>
+                </div>
+
+                <label htmlFor="studentName">Nome do aluno</label>
+                <input
+                  id="studentName"
+                  name="studentName"
+                  type="text"
+                  value={studentName}
+                  onChange={handleStudentChange}
+                  maxLength={100}
+                  placeholder="Ex: João da Silva"
+                  className={fieldErrors.studentName ? "input-error" : ""}
+                />
+                {fieldErrors.studentName && (
+                  <span className="field-error">{fieldErrors.studentName}</span>
+                )}
+
+                <label htmlFor="studentPhone">Telefone</label>
+                <input
+                  id="studentPhone"
+                  name="studentPhone"
+                  type="tel"
+                  inputMode="numeric"
+                  value={studentPhone}
+                  onChange={handleStudentChange}
+                  placeholder="(91) 98765-4321"
+                  className={fieldErrors.studentPhone ? "input-error" : ""}
+                />
+                {fieldErrors.studentPhone && (
+                  <span className="field-error">{fieldErrors.studentPhone}</span>
+                )}
+              </>
+            ) : (
               <SearchableSelect
                 id="person"
                 label="Pessoa"
+                hideLabel
                 placeholder="Pesquisar pessoa..."
                 emptyMessage="Nenhuma pessoa encontrada."
                 options={people}
@@ -198,81 +271,31 @@ export default function WithdrawalForm({ onSuccess, onCancel }) {
                 getTitle={(p) => p.name}
                 getSubtitle={(p) => p.sector || ""}
               />
+            )}
+          </section>
 
-              <button
-                type="button"
-                className="student-mode-btn"
-                onClick={handleStartStudent}
-              >
-                <span className="student-mode-btn-icon" aria-hidden="true">🎓</span>
-                <span>Aluno não cadastrado</span>
-              </button>
-            </>
-          )}
-
-          {isStudent && (
-            <div className="student-panel">
-              <div className="student-note">
-                <span className="student-badge">🎓 Aluno não cadastrado</span>
-                <span>Nome e telefone serão salvos apenas neste registro do histórico.</span>
-              </div>
-
-              <label htmlFor="studentName">Nome do aluno</label>
-              <input
-                id="studentName"
-                name="studentName"
-                type="text"
-                value={studentName}
-                onChange={handleStudentChange}
-                maxLength={100}
-                placeholder="Ex: João da Silva"
-                className={fieldErrors.studentName ? "input-error" : ""}
-              />
-              {fieldErrors.studentName && (
-                <span className="field-error">{fieldErrors.studentName}</span>
-              )}
-
-              <label htmlFor="studentPhone">Telefone</label>
-              <input
-                id="studentPhone"
-                name="studentPhone"
-                type="tel"
-                inputMode="numeric"
-                value={studentPhone}
-                onChange={handleStudentChange}
-                placeholder="(91) 98765-4321"
-                className={fieldErrors.studentPhone ? "input-error" : ""}
-              />
-              {fieldErrors.studentPhone && (
-                <span className="field-error">{fieldErrors.studentPhone}</span>
-              )}
-
-              <button
-                type="button"
-                className="btn-back-people"
-                onClick={handleBackToPeople}
-              >
-                <span aria-hidden="true">←</span>
-                Voltar para pessoas cadastradas
-              </button>
+          <section className="withdrawal-section">
+            <div className="withdrawal-section-head">
+              <span className="withdrawal-step" aria-hidden="true">3</span>
+              <h3 className="withdrawal-section-title">Previsão de devolução</h3>
             </div>
-          )}
 
-          <label htmlFor="expectedDate">Previsão de Devolução</label>
-          <input
-            id="expectedDate"
-            type="date"
-            value={expectedDate}
-            onChange={(e) => setExpectedDate(e.target.value)}
-            required
-          />
+            <input
+              id="expectedDate"
+              type="date"
+              value={expectedDate}
+              onChange={(e) => setExpectedDate(e.target.value)}
+              aria-label="Data de previsão de devolução"
+              required
+            />
+          </section>
 
-          <div className="form-buttons">
-            <button type="submit" disabled={loading}>
-              {loading ? "Registrando..." : "Confirmar Retirada"}
-            </button>
+          <div className="form-buttons withdrawal-footer">
             <button type="button" className="btn-cancel" onClick={onCancel}>
               Cancelar
+            </button>
+            <button type="submit" disabled={loading}>
+              {loading ? "Registrando..." : "Confirmar Retirada"}
             </button>
           </div>
         </>
