@@ -693,6 +693,9 @@
   border-radius: 6px;
   cursor: grab;
   user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
   flex-shrink: 0;
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
@@ -704,6 +707,8 @@
 
 .drag-zone:active {
   cursor: grabbing;
+  background-color: #e2e8f0;
+  border-color: #64748b;
 }
 
 .drag-zone-grip {

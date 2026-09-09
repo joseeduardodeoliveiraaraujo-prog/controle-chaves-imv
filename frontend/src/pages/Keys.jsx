@@ -28,6 +28,10 @@ const emptyForm = { name: "", location: "", description: "" };
 
 const LIMITS = { name: 50, location: 50, description: 80 };
 
+function restrictToVerticalAxis({ transform }) {
+  return { ...transform, x: 0 };
+}
+
 function SortableKeyCard({ item, isOrganizing, onEdit, onDelete }) {
   const {
     attributes,
@@ -391,6 +395,7 @@ export default function Keys() {
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 onDragEnd={handleDragEnd}
+                modifiers={[restrictToVerticalAxis]}
               >
                 <SortableContext
                   items={keys.map((k) => k.id)}
