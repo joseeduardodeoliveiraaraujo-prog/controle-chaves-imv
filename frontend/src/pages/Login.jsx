@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import chaveImg from "../assets/chave5.jpeg";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -28,34 +29,54 @@ export default function Login() {
 
   return (
     <div className="login-container">
-      <form className="login-form" onSubmit={handleSubmit}>
-        <h1>Controle de Chaves</h1>
-        <p>Faça login para acessar o sistema</p>
+      <div className="login-visual">
+        <img src={chaveImg} alt="Controle de Chaves" className="login-visual-img" />
+        <div className="login-visual-overlay" />
+        <div className="login-visual-content">
+          <div className="login-visual-icon">&#128273;</div>
+          <h2>Controle de Chaves</h2>
+          <p>Sistema de gerenciamento de chaves</p>
+        </div>
+      </div>
 
-        {error && <div className="error">{error}</div>}
+      <div className="login-panel">
+        <form className="login-form" onSubmit={handleSubmit}>
+          <div className="login-form-header">
+            <h1>Entrar</h1>
+            <p>Acesse sua conta para continuar</p>
+          </div>
 
-        <label htmlFor="email">Email</label>
-        <input
-          id="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
+          {error && <div className="error">{error}</div>}
 
-        <label htmlFor="password">Senha</label>
-        <input
-          id="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+          <div className="login-field">
+            <label htmlFor="email">Email</label>
+            <input
+              id="email"
+              type="email"
+              placeholder="seu@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Entrando..." : "Entrar"}
-        </button>
-      </form>
+          <div className="login-field">
+            <label htmlFor="password">Senha</label>
+            <input
+              id="password"
+              type="password"
+              placeholder="Sua senha"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          <button type="submit" disabled={loading} className="login-btn">
+            {loading ? "Entrando..." : "Entrar"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
