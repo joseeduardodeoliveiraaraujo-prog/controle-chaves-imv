@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "../contexts/AuthContext";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { getKeys, getActiveMovements, returnKey } from "../services/firestore";
 import Modal from "../components/Modal";
+import Header from "../components/Header";
 import WithdrawalForm from "../components/WithdrawalForm";
 import KeyCabinet from "../components/KeyCabinet";
 
@@ -17,9 +17,6 @@ export default function Dashboard() {
   const [activeMovements, setActiveMovements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
 
   useEffect(() => {
     loadDashboard();
@@ -57,11 +54,6 @@ export default function Dashboard() {
     }
   }
 
-  async function handleLogout() {
-    await logout();
-    navigate("/login");
-  }
-
   function handleWithdrawalSuccess() {
     setShowModal(false);
     loadDashboard();
@@ -80,21 +72,7 @@ export default function Dashboard() {
 
   return (
     <div className="page-container">
-      <header className="page-header">
-        <div className="header-left">
-          <h1>Controle de Chaves</h1>
-          <nav className="header-nav">
-            <Link to="/dashboard" className="nav-link active">Painel</Link>
-            <Link to="/chaves" className="nav-link">Chaves</Link>
-            <Link to="/pessoas" className="nav-link">Pessoas</Link>
-            <Link to="/historico" className="nav-link">Histórico</Link>
-          </nav>
-        </div>
-        <div className="header-right">
-          <span className="header-email">{user?.email}</span>
-          <button onClick={handleLogout}>Sair</button>
-        </div>
-      </header>
+      <Header showUser />
 
       <main className="page-main">
         <div className="page-title-row">

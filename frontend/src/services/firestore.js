@@ -234,3 +234,63 @@ export async function getAllMovements() {
     ...doc.data(),
   }));
 }
+
+const roomsCollection = collection(db, "rooms");
+
+const DEFAULT_ROOM_SCHEDULE = [
+  { day: "Segunda-feira", shift: "Manhã", situation: "available", notes: "" },
+  { day: "Segunda-feira", shift: "Tarde", situation: "available", notes: "" },
+  { day: "Terça-feira", shift: "Manhã", situation: "available", notes: "" },
+  { day: "Terça-feira", shift: "Tarde", situation: "available", notes: "" },
+  { day: "Quarta-feira", shift: "Manhã", situation: "available", notes: "" },
+  { day: "Quarta-feira", shift: "Tarde", situation: "available", notes: "" },
+  { day: "Quinta-feira", shift: "Manhã", situation: "available", notes: "" },
+  { day: "Quinta-feira", shift: "Tarde", situation: "available", notes: "" },
+  { day: "Sexta-feira", shift: "Manhã", situation: "available", notes: "" },
+  { day: "Sexta-feira", shift: "Tarde", situation: "available", notes: "" },
+];
+
+export async function addRoom(roomData, nextOrdem) {
+  const docRef = await addDoc(roomsCollection, {
+    ...roomData,
+    schedule: roomData.schedule ?? DEFAULT_ROOM_SCHEDULE,
+    ordem: nextOrdem,
+    createdAt: serverTimestamp(),
+  });
+  return docRef.id;
+}
+
+export async function getRooms() {
+  const snapshot = await getDocs(roomsCollection);
+  const rooms = snapshot.docs.map((d) => ({
+    id: d.id,
+    ...d.data(),
+  }));
+  return rooms.sort((a, b) => (a.ordem ?? Infinity) - (b.ordem ?? Infinity));
+}
+
+export async function updateRoom(id, roomData) {
+  const roomRef = doc(db, "rooms", id);
+  await updateDoc(roomRef, roomData);
+}
+
+export async function saveRoomsOrder(orderedRooms) {
+  const batch = writeBatch(db);
+  orderedRooms.forEach((room, index) => {
+    batch.update(doc(db, "rooms", room.id), { ordem: index });
+  });
+  await batch.commit();
+}
+
+export async function deleteRoom(id) {
+  await runTransaction(db, async (transaction) => {
+    const roomRef = doc(db, "rooms", id);
+    const roomDoc = await transaction.get(roomRef);
+
+    if (!roomDoc.exists()) {
+      throw new Error("Esta sala não existe mais.");
+    }
+
+    transaction.delete(roomRef);
+  });
+}
