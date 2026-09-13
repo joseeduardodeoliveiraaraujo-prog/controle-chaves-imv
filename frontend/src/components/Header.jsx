@@ -6,16 +6,13 @@ const KEY_ENV_LINKS = [
   { to: "/dashboard", label: "Painel" },
   { to: "/chaves", label: "Chaves" },
   { to: "/pessoas", label: "Pessoas" },
-  { to: "/salas", label: "Salas" },
   { to: "/historico", label: "Histórico" },
 ];
 
-function isLinkActive(pathname, link) {
-  if (link.to === "/salas") {
-    return pathname === "/salas" || pathname.startsWith("/salas");
-  }
-  return pathname === link.to;
-}
+const SALAS_ENV_LINKS = [
+  { to: "/salas", label: "Painel" },
+  { to: "/salas/admin", label: "Salas" },
+];
 
 export default function Header({ showUser = false }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -97,18 +94,21 @@ export default function Header({ showUser = false }) {
 
         <nav className="header-nav">
           {isSalasEnv ? (
-            <Link
-              to="/salas"
-              className={`nav-link ${pathname.startsWith("/salas") ? "active" : ""}`}
-            >
-              Salas
-            </Link>
+            SALAS_ENV_LINKS.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className={`nav-link ${pathname === link.to ? "active" : ""}`}
+              >
+                {link.label}
+              </Link>
+            ))
           ) : (
             KEY_ENV_LINKS.map((link) => (
               <Link
                 key={link.to}
                 to={link.to}
-                className={`nav-link ${isLinkActive(pathname, link) ? "active" : ""}`}
+                className={`nav-link ${pathname === link.to ? "active" : ""}`}
               >
                 {link.label}
               </Link>
@@ -117,7 +117,7 @@ export default function Header({ showUser = false }) {
         </nav>
       </div>
 
-      {showUser && (
+      {(showUser || isSalasEnv) && (
         <div className="header-right">
           <span className="header-email">{user?.email}</span>
           <button onClick={handleLogout}>Sair</button>
