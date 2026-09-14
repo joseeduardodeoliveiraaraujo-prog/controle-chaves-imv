@@ -205,7 +205,7 @@ export default function People() {
                 id="email"
                 name="email"
                 type="email"
-                placeholder="Opcional"
+                placeholder="Opcional — Ex: exemplo@email.com"
                 value={form.email}
                 onChange={handleChange}
                 maxLength={LIMITS.email}

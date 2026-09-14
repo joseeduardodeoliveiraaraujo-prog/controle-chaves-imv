@@ -296,7 +296,7 @@ export default function Keys() {
                 id="description"
                 name="description"
                 type="text"
-                placeholder="Ex: Chave principal da Sala 5"
+                placeholder="Opcional — Ex: Chave principal da Sala 5"
                 value={form.description}
                 onChange={handleChange}
                 maxLength={LIMITS.description}
