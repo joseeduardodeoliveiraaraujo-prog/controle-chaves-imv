@@ -22,10 +22,17 @@ import {
   saveRoomsOrder,
 } from "../services/firestore";
 import Modal from "../components/Modal";
+import {
+  SHIFTS,
+  decodeSchedule,
+  parseLocalDate,
+  businessDaysBetween,
+  applyScheduleRange,
+} from "../utils/schedule";
 
 const emptyForm = { name: "", location: "", description: "" };
 
-const LIMITS = { name: 80, location: 80, description: 200 };
+const LIMITS = { name: 50, location: 50, description: 80 };
 
 function restrictToVerticalAxis({ transform }) {
   return { ...transform, x: 0 };
@@ -81,88 +88,117 @@ function SortableRoomCard({ item, isOrganizing, onSchedule, onEdit, onDelete }) 
   );
 }
 
-const WEEK_DAYS = [
-  "Segunda-feira",
-  "Terça-feira",
-  "Quarta-feira",
-  "Quinta-feira",
-  "Sexta-feira",
+const SITUATION_OPTIONS = [
+  { value: "occupied", label: "Ocupado" },
+  { value: "maintenance", label: "Manutenção" },
+  { value: "available", label: "Livre" },
 ];
 
-const SHIFTS = ["Manhã", "Tarde"];
+const PERIOD_OPTIONS = [
+  { value: "Manha", label: "Manhã", shifts: ["Manhã"] },
+  { value: "Tarde", label: "Tarde", shifts: ["Tarde"] },
+  { value: "Ambos", label: "Manhã e Tarde", shifts: [...SHIFTS] },
+];
 
-const SITUATION_LABELS = {
-  available: "Livre",
-  occupied: "Ocupado",
-  maintenance: "Manutenção",
+const EMPTY_RANGE_FORM = {
+  startDate: "",
+  endDate: "",
+  period: "Manha",
+  situation: "occupied",
+  notes: "",
 };
 
-function ScheduleEditor({ room, onCancel, onSaved }) {
-  const [schedule, setSchedule] = useState(() => {
-    const map = {};
-    (room.schedule || []).forEach((entry) => {
-      map[`${entry.day}|${entry.shift}`] = {
-        day: entry.day,
-        shift: entry.shift,
-        situation: entry.situation || "available",
-        notes: entry.notes || "",
-      };
-    });
-    return map;
-  });
-  const [saving, setSaving] = useState(false);
+const NOTES_LIMIT = 120;
+
+function formatDayList(days) {
+  const list = days.map((d) => d.short);
+  if (list.length === 1) return list[0];
+  if (list.length === 2) return `${list[0]} e ${list[1]}`;
+  return `${list.slice(0, -1).join(", ")} e ${list[list.length - 1]}`;
+}
+
+function ScheduleEditor({ room, onCancel }) {
+  const [schedule, setSchedule] = useState(() => decodeSchedule(room.schedule));
+  const [form, setForm] = useState(EMPTY_RANGE_FORM);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [appliedMessage, setAppliedMessage] = useState("");
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  function getEntry(day, shift) {
-    return (
-      schedule[`${day}|${shift}`] || {
-        day,
-        shift,
-        situation: "available",
-        notes: "",
+  const startDate = parseLocalDate(form.startDate);
+  const endDate = parseLocalDate(form.endDate);
+
+  let previewText = "";
+  if (startDate && endDate && endDate >= startDate) {
+    const days = businessDaysBetween(startDate, endDate);
+    if (days.length > 0) {
+      previewText = `Serão agendados os dias úteis: ${formatDayList(days)}.`;
+    }
+  }
+
+  function handleChange(e) {
+    const { name, value } = e.target;
+    const next = { ...form, [name]: value };
+    if (name === "situation" && value === "available") {
+      next.notes = "";
+    }
+    setForm(next);
+    if (fieldErrors[name]) {
+      setFieldErrors({ ...fieldErrors, [name]: "" });
+    }
+  }
+
+  function validate() {
+    const errors = {};
+    if (!form.startDate) {
+      errors.startDate = "Data inicial é obrigatória.";
+    }
+    if (!form.endDate) {
+      errors.endDate = "Data final é obrigatória.";
+    }
+    if (form.startDate && form.endDate && endDate < startDate) {
+      errors.endDate = "A data final deve ser igual ou posterior à data inicial.";
+    }
+    if (form.situation !== "available") {
+      if (!form.notes.trim()) {
+        errors.notes = "Responsável/Motivo é obrigatório.";
+      } else if (form.notes.length > NOTES_LIMIT) {
+        errors.notes = `Responsável/Motivo deve ter no máximo ${NOTES_LIMIT} caracteres.`;
       }
-    );
+    }
+    return errors;
   }
 
-  function handleSituationChange(day, shift, situation) {
-    const key = `${day}|${shift}`;
-    const current = getEntry(day, shift);
-    setSchedule({
-      ...schedule,
-      [key]: {
-        ...current,
-        situation,
-        notes: situation === "available" ? "" : current.notes,
-      },
-    });
-  }
-
-  function handleNotesChange(day, shift, notes) {
-    const key = `${day}|${shift}`;
-    const current = getEntry(day, shift);
-    setSchedule({ ...schedule, [key]: { ...current, notes } });
-  }
-
-  async function handleSave() {
-    setSaving(true);
+  async function handleApply(e) {
+    e.preventDefault();
     setError("");
+    setAppliedMessage("");
+    const errors = validate();
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+    setFieldErrors({});
 
-    const serialized = [];
-    WEEK_DAYS.forEach((day) => {
-      SHIFTS.forEach((shift) => {
-        const entry = getEntry(day, shift);
-        serialized.push({
-          day: entry.day,
-          shift: entry.shift,
-          situation: entry.situation,
-          notes: entry.notes || "",
-        });
-      });
+    const period = PERIOD_OPTIONS.find((p) => p.value === form.period);
+    const next = applyScheduleRange(schedule, {
+      start: startDate,
+      end: endDate,
+      shifts: period.shifts,
+      situation: form.situation,
+      notes: form.notes.trim(),
     });
 
+    setSaving(true);
     try {
-      await updateRoom(room.id, { schedule: serialized });
-      onSaved();
+      await updateRoom(room.id, { schedule: next });
+      setSchedule(next);
+      const days = businessDaysBetween(startDate, endDate);
+      setAppliedMessage(
+        days.length === 1
+          ? "Agendamento aplicado a 1 dia útil."
+          : `Agendamento aplicado a ${days.length} dias úteis.`
+      );
     } catch (err) {
       setError(err.message || "Erro ao salvar o agendamento.");
     } finally {
@@ -173,88 +209,127 @@ function ScheduleEditor({ room, onCancel, onSaved }) {
   return (
     <div className="schedule-editor">
       <p className="schedule-editor-hint">
-        Selecione a situação de cada período. Para "Ocupado" ou "Manutenção",
-        informe o responsável ou motivo.
+        Defina o intervalo de datas, o período e a situação. O agendamento será
+        aplicado somente aos dias úteis (segunda a sexta) do intervalo.
       </p>
 
       {error && <div className="error">{error}</div>}
+      {appliedMessage && <div className="success">{appliedMessage}</div>}
 
-      <div className="schedule-editor-wrap">
-        <table className="schedule-editor-table">
-          <thead>
-            <tr>
-              <th></th>
-              {SHIFTS.map((shift) => (
-                <th key={shift}>{shift}</th>
+      <form onSubmit={handleApply} noValidate>
+        <div className="range-fields">
+          <div className="range-field">
+            <label htmlFor="rangeStart">Data inicial</label>
+            <input
+              id="rangeStart"
+              name="startDate"
+              type="date"
+              value={form.startDate}
+              onChange={handleChange}
+              className={fieldErrors.startDate ? "input-error" : ""}
+              disabled={saving}
+            />
+            {fieldErrors.startDate && (
+              <span className="field-error">{fieldErrors.startDate}</span>
+            )}
+          </div>
+
+          <div className="range-field">
+            <label htmlFor="rangeEnd">Data final</label>
+            <input
+              id="rangeEnd"
+              name="endDate"
+              type="date"
+              value={form.endDate}
+              onChange={handleChange}
+              className={fieldErrors.endDate ? "input-error" : ""}
+              disabled={saving}
+            />
+            {fieldErrors.endDate && (
+              <span className="field-error">{fieldErrors.endDate}</span>
+            )}
+          </div>
+
+          <div className="range-field">
+            <label htmlFor="rangePeriod">Período</label>
+            <select
+              id="rangePeriod"
+              name="period"
+              value={form.period}
+              onChange={handleChange}
+              disabled={saving}
+            >
+              {PERIOD_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {WEEK_DAYS.map((day) => (
-              <tr key={day}>
-                <th className="schedule-day">{day}</th>
-                {SHIFTS.map((shift) => {
-                  const entry = getEntry(day, shift);
-                  return (
-                    <td key={shift}>
-                      <div className="schedule-cell">
-                        <select
-                          className={`schedule-sel ${entry.situation}`}
-                          value={entry.situation}
-                          onChange={(e) =>
-                            handleSituationChange(day, shift, e.target.value)
-                          }
-                          disabled={saving}
-                        >
-                          {Object.entries(SITUATION_LABELS).map(
-                            ([value, label]) => (
-                              <option key={value} value={value}>
-                                {label}
-                              </option>
-                            )
-                          )}
-                        </select>
-                        {entry.situation !== "available" && (
-                          <input
-                            type="text"
-                            className="schedule-notes"
-                            value={entry.notes}
-                            onChange={(e) =>
-                              handleNotesChange(day, shift, e.target.value)
-                            }
-                            placeholder="Responsável / Motivo"
-                            maxLength={120}
-                            disabled={saving}
-                          />
-                        )}
-                      </div>
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </select>
+          </div>
 
-      <div className="schedule-editor-footer">
-        <button
-          type="button"
-          className="btn-cancel"
-          onClick={onCancel}
-          disabled={saving}
-        >
-          Cancelar
-        </button>
-        <button
-          type="button"
-          className="btn-save-organize"
-          onClick={handleSave}
-          disabled={saving}
-        >
-          {saving ? "Salvando..." : "Salvar alterações"}
-        </button>
-      </div>
+          <div className="range-field">
+            <label htmlFor="rangeSituation">Situação</label>
+            <select
+              id="rangeSituation"
+              name="situation"
+              value={form.situation}
+              onChange={handleChange}
+              disabled={saving}
+            >
+              {SITUATION_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {form.situation !== "available" && (
+          <div className="range-field">
+            <label htmlFor="rangeNotes">
+              Responsável / Motivo
+              <span className="char-count">
+                {form.notes.length}/{NOTES_LIMIT}
+              </span>
+            </label>
+            <input
+              id="rangeNotes"
+              name="notes"
+              type="text"
+              value={form.notes}
+              onChange={handleChange}
+              placeholder={
+                form.situation === "occupied"
+                  ? "Ex.: Nome do responsável"
+                  : "Ex.: Motivo da manutenção"
+              }
+              maxLength={NOTES_LIMIT}
+              className={fieldErrors.notes ? "input-error" : ""}
+              disabled={saving}
+            />
+            {fieldErrors.notes && (
+              <span className="field-error">{fieldErrors.notes}</span>
+            )}
+          </div>
+        )}
+
+        {previewText && <p className="range-preview">{previewText}</p>}
+
+        <div className="schedule-editor-footer">
+          <button
+            type="button"
+            className="btn-cancel"
+            onClick={onCancel}
+            disabled={saving}
+          >
+            Cancelar
+          </button>
+          <button type="submit" className="btn-save-organize" disabled={saving}>
+            {saving ? "Aplicando..." : "Aplicar"}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
@@ -312,8 +387,10 @@ export default function RoomsAdmin() {
       errors.name = `Nome deve ter entre 3 e ${LIMITS.name} caracteres.`;
     }
 
-    if (location && (location.length < 2 || location.length > LIMITS.location)) {
-      errors.location = `Localização deve ter entre 2 e ${LIMITS.location} caracteres.`;
+    if (!location) {
+      errors.location = "Local é obrigatório.";
+    } else if (location.length < 2 || location.length > LIMITS.location) {
+      errors.location = `Local deve ter entre 2 e ${LIMITS.location} caracteres.`;
     }
 
     if (description.length > LIMITS.description) {
@@ -374,11 +451,6 @@ export default function RoomsAdmin() {
     setScheduleRoom(room);
   }
 
-  function handleScheduleSaved() {
-    setScheduleRoom(null);
-    loadRooms();
-  }
-
   async function handleDelete(id) {
     if (!confirm("Tem certeza que deseja excluir esta sala?")) return;
 
@@ -429,8 +501,7 @@ export default function RoomsAdmin() {
     return rooms.filter(
       (r) =>
         r.name?.toLowerCase().includes(term) ||
-        r.location?.toLowerCase().includes(term) ||
-        r.description?.toLowerCase().includes(term)
+        r.location?.toLowerCase().includes(term)
     );
   }, [rooms, searchTerm]);
 
@@ -447,7 +518,7 @@ export default function RoomsAdmin() {
 
             <form onSubmit={handleSubmit}>
               <label htmlFor="name">
-                Nome/Identificação
+                Nome/Identidade
                 <span className="char-count">{form.name.length}/{LIMITS.name}</span>
               </label>
               <input
@@ -463,14 +534,14 @@ export default function RoomsAdmin() {
               {fieldErrors.name && <span className="field-error">{fieldErrors.name}</span>}
 
               <label htmlFor="location">
-                Localização / Bloco
+                Local
                 <span className="char-count">{form.location.length}/{LIMITS.location}</span>
               </label>
               <input
                 id="location"
                 name="location"
                 type="text"
-                placeholder="Opcional — Ex: Bloco A, 2º andar"
+                placeholder="Ex: Bloco A, 2º andar"
                 value={form.location}
                 onChange={handleChange}
                 maxLength={LIMITS.location}
@@ -543,7 +614,7 @@ export default function RoomsAdmin() {
                 </span>
                 <input
                   type="text"
-                  placeholder="Buscar por nome, localização ou descrição..."
+                  placeholder="Buscar por nome ou local..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -620,7 +691,6 @@ export default function RoomsAdmin() {
           <ScheduleEditor
             room={scheduleRoom}
             onCancel={() => setScheduleRoom(null)}
-            onSaved={handleScheduleSaved}
           />
         </Modal>
       )}

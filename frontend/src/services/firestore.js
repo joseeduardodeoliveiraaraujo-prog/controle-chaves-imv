@@ -12,6 +12,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { db } from "../config/firebase";
+import { createDefaultSchedule } from "../utils/schedule";
 
 const keysCollection = collection(db, "keys");
 
@@ -237,23 +238,10 @@ export async function getAllMovements() {
 
 const roomsCollection = collection(db, "rooms");
 
-const DEFAULT_ROOM_SCHEDULE = [
-  { day: "Segunda-feira", shift: "Manhã", situation: "available", notes: "" },
-  { day: "Segunda-feira", shift: "Tarde", situation: "available", notes: "" },
-  { day: "Terça-feira", shift: "Manhã", situation: "available", notes: "" },
-  { day: "Terça-feira", shift: "Tarde", situation: "available", notes: "" },
-  { day: "Quarta-feira", shift: "Manhã", situation: "available", notes: "" },
-  { day: "Quarta-feira", shift: "Tarde", situation: "available", notes: "" },
-  { day: "Quinta-feira", shift: "Manhã", situation: "available", notes: "" },
-  { day: "Quinta-feira", shift: "Tarde", situation: "available", notes: "" },
-  { day: "Sexta-feira", shift: "Manhã", situation: "available", notes: "" },
-  { day: "Sexta-feira", shift: "Tarde", situation: "available", notes: "" },
-];
-
 export async function addRoom(roomData, nextOrdem) {
   const docRef = await addDoc(roomsCollection, {
     ...roomData,
-    schedule: roomData.schedule ?? DEFAULT_ROOM_SCHEDULE,
+    schedule: roomData.schedule ?? createDefaultSchedule(),
     ordem: nextOrdem,
     createdAt: serverTimestamp(),
   });

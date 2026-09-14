@@ -1,24 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Header from "../components/Header";
 import { getRooms } from "../services/firestore";
-
-const WEEK_DAYS = [
-  "Segunda-feira",
-  "Terça-feira",
-  "Quarta-feira",
-  "Quinta-feira",
-  "Sexta-feira",
-];
-
-const DAY_SHORT = {
-  "Segunda-feira": "Seg",
-  "Terça-feira": "Ter",
-  "Quarta-feira": "Qua",
-  "Quinta-feira": "Qui",
-  "Sexta-feira": "Sex",
-};
-
-const SHIFTS = ["Manhã", "Tarde"];
+import {
+  SHIFTS,
+  getWeekDates,
+  getWeekMonday,
+  normalizeSchedule,
+} from "../utils/schedule";
 
 const SITUATIONS = {
   available: { label: "Livre", className: "available" },
@@ -26,90 +14,28 @@ const SITUATIONS = {
   maintenance: { label: "Manutenção", className: "maintenance" },
 };
 
-function buildScheduleMatrix(schedule) {
-  const entries = schedule || [];
-  const daySet = new Set(entries.map((e) => e.day));
-  const shiftSet = new Set(entries.map((e) => e.shift));
-
-  const days = WEEK_DAYS.filter((day) => daySet.has(day));
-  const shifts = SHIFTS.filter((shift) => shiftSet.has(shift));
-
-  const byDayAndShift = {};
-  entries.forEach((e) => {
-    if (!byDayAndShift[e.shift]) byDayAndShift[e.shift] = {};
-    byDayAndShift[e.shift][e.day] = e;
-  });
-
-  return { days, shifts, byDayAndShift };
-}
-
-function RoomCard({ room }) {
-  const { days, shifts, byDayAndShift } = buildScheduleMatrix(room.schedule);
-
-  return (
-    <article className="room-card">
-      <div className="room-card-top">
-        <h3>{room.name}</h3>
-        {room.location && <span className="room-location">{room.location}</span>}
-      </div>
-      {room.description && <p className="room-description">{room.description}</p>}
-
-      {days.length === 0 || shifts.length === 0 ? (
-        <p className="room-no-schedule">Sem grade de horários disponível.</p>
-      ) : (
-        <div className="room-schedule-wrap">
-          <table className="room-schedule">
-            <thead>
-              <tr>
-                <th></th>
-                {days.map((day) => (
-                  <th key={day}>{DAY_SHORT[day] || day}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {shifts.map((shift) => (
-                <tr key={shift}>
-                  <th className="shift-label">{shift}</th>
-                  {days.map((day) => {
-                    const entry = byDayAndShift[shift]?.[day];
-                    const situation = entry ? SITUATIONS[entry.situation] : null;
-                    return (
-                      <td
-                        key={day}
-                        className={`room-cell ${
-                          entry
-                            ? situation
-                              ? situation.className
-                              : "unknown"
-                            : ""
-                        }`}
-                        title={
-                          entry?.notes || (situation ? situation.label : "")
-                        }
-                      >
-                        {situation ? situation.label : "—"}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </article>
-  );
-}
-
 export default function Rooms() {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [weekOffset, setWeekOffset] = useState(0);
 
   useEffect(() => {
     loadRooms();
   }, []);
+
+  const weekStart = new Date(getWeekMonday());
+  weekStart.setDate(weekStart.getDate() + weekOffset * 7);
+  const weekDays = getWeekDates(weekStart);
+
+  const roomsWithSchedule = useMemo(
+    () =>
+      rooms.map((room) => ({
+        room,
+        byDay: normalizeSchedule(room.schedule),
+      })),
+    [rooms],
+  );
 
   async function loadRooms() {
     try {
@@ -126,7 +52,7 @@ export default function Rooms() {
     <div className="page-container">
       <Header />
 
-      <main className="page-main">
+      <main className="page-main rooms-page-main">
         <div className="page-title-row">
           <h2>Salas</h2>
         </div>
@@ -145,16 +71,132 @@ export default function Rooms() {
           <p className="empty-message">Nenhuma sala cadastrada ainda.</p>
         ) : (
           <>
+            <div className="schedule-week-nav">
+              <button
+                type="button"
+                onClick={() => setWeekOffset((o) => o - 1)}
+              >
+                ‹ Semana anterior
+              </button>
+              <div className="schedule-week-label">
+                {`Semana de ${weekDays[0].full} a ${weekDays[4].full}`}
+              </div>
+              <button
+                type="button"
+                className="btn-week-current"
+                onClick={() => setWeekOffset(0)}
+              >
+                Semana atual
+              </button>
+              <button
+                type="button"
+                onClick={() => setWeekOffset((o) => o + 1)}
+              >
+                Próxima semana ›
+              </button>
+            </div>
+
             <div className="rooms-legend">
               <span className="legend-item legend-available">Livre</span>
               <span className="legend-item legend-borrowed">Ocupado</span>
               <span className="legend-item legend-overdue">Manutenção</span>
             </div>
 
-            <div className="rooms-grid">
-              {rooms.map((room) => (
-                <RoomCard key={room.id} room={room} />
-              ))}
+            <div className="rooms-table-wrap">
+              <table className="rooms-table">
+                <thead>
+                  <tr>
+                    <th className="rooms-corner" colSpan={2} scope="col">
+                      Dia / Período
+                    </th>
+                    {roomsWithSchedule.map(({ room }) => (
+                      <th
+                        key={room.id}
+                        className="rooms-room-col"
+                        scope="col"
+                      >
+                        <span className="rooms-room-name" title={room.name}>
+                          {room.name}
+                        </span>
+                        {room.location && (
+                          <span
+                            className="rooms-room-location"
+                            title={room.location}
+                          >
+                            {room.location}
+                          </span>
+                        )}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {weekDays.map((day) =>
+                    SHIFTS.map((shift, shiftIndex) => (
+                      <tr key={`${day.dateKey}-${shift}`}>
+                        {shiftIndex === 0 && (
+                          <th
+                            className="rooms-day-col"
+                            rowSpan={2}
+                            scope="rowgroup"
+                          >
+                            <span className="rooms-day-name">
+                              {day.dayShort}
+                            </span>
+                            <span className="rooms-day-date">{day.short}</span>
+                          </th>
+                        )}
+                        <th className="rooms-shift-col" scope="row">
+                          {shift}
+                        </th>
+                        {roomsWithSchedule.map(({ room, byDay }) => {
+                          const entry = byDay[day.dateKey]?.[shift];
+                          const situation = entry
+                            ? SITUATIONS[entry.situation]
+                            : null;
+                          const title = entry
+                            ? situation
+                              ? entry.notes
+                                ? `${situation.label} — ${entry.notes}`
+                                : situation.label
+                              : entry.situation
+                            : "Sem agendamento para este dia/período.";
+                          return (
+                            <td
+                              key={room.id}
+                              className={`rooms-cell ${
+                                entry && situation
+                                  ? situation.className
+                                  : entry
+                                    ? "unknown"
+                                    : ""
+                              }`}
+                              title={title}
+                            >
+                              {entry ? (
+                                <span className="rooms-cell-content">
+                                  <span>
+                                    {situation
+                                      ? situation.label
+                                      : entry.situation}
+                                  </span>
+                                  {entry.notes && (
+                                    <span className="rooms-cell-note">
+                                      {entry.notes}
+                                    </span>
+                                  )}
+                                </span>
+                              ) : (
+                                "—"
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    )),
+                  )}
+                </tbody>
+              </table>
             </div>
           </>
         )}

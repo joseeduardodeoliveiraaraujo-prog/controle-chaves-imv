@@ -168,6 +168,16 @@
   border: 1px solid #fecaca;
 }
 
+.success {
+  background-color: #ecfdf5;
+  color: #065f46;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  border: 1px solid #a7f3d0;
+}
+
 .loading {
   display: flex;
   flex-direction: column;
@@ -2110,120 +2120,160 @@
   color: #475569;
 }
 
-.rooms-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 20px;
+.rooms-page-main {
+  max-width: 1600px;
 }
 
-.room-card {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  padding: 20px;
-}
-
-.room-card-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 6px;
-}
-
-.room-card h3 {
-  font-size: 16px;
-  font-weight: 600;
-  color: #0f172a;
-  margin: 0;
-}
-
-.room-location {
-  font-size: 12px;
-  font-weight: 500;
-  color: #2563eb;
-  background-color: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 999px;
-  padding: 3px 10px;
-  white-space: nowrap;
-}
-
-.room-description {
-  font-size: 13px;
-  color: #64748b;
-  margin: 0 0 14px;
-}
-
-.room-no-schedule {
-  font-size: 13px;
-  color: #94a3b8;
-  text-align: center;
-  padding: 16px;
-  margin: 0;
-  background-color: #f8fafc;
-  border-radius: 8px;
-}
-
-.room-schedule-wrap {
+.rooms-table-wrap {
   overflow-x: auto;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
-.room-schedule {
+.rooms-table {
   width: 100%;
-  min-width: 420px;
-  border-collapse: collapse;
+  min-width: max-content;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 12px;
 }
 
-.room-schedule th,
-.room-schedule td {
-  padding: 8px 10px;
+.rooms-table th,
+.rooms-table td {
   border: 1px solid #e2e8f0;
+  padding: 6px 10px;
   text-align: center;
 }
 
-.room-schedule thead th {
+.rooms-table thead th {
   background-color: #f8fafc;
   color: #475569;
   font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.rooms-corner {
+  left: 0;
+  z-index: 3;
+  text-align: left;
+  white-space: nowrap;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.rooms-room-col {
+  min-width: 130px;
+  max-width: 200px;
+  padding: 8px 10px;
+  vertical-align: top;
   white-space: nowrap;
 }
 
-.room-schedule .shift-label {
+.rooms-room-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.rooms-room-location {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 400;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.rooms-day-col {
+  position: sticky;
+  left: 0;
+  z-index: 1;
   background-color: #f8fafc;
-  color: #475569;
+  color: #334155;
+  font-weight: 600;
+  white-space: nowrap;
+  vertical-align: middle;
+  width: 70px;
+}
+
+.rooms-shift-col {
+  position: sticky;
+  left: 70px;
+  z-index: 1;
+  background-color: #f1f5f9;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 11px;
+  white-space: nowrap;
+  width: 56px;
+}
+
+.rooms-day-name {
+  display: block;
+  font-weight: 600;
+}
+
+.rooms-day-date {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: #94a3b8;
+}
+
+.rooms-cell {
+  min-width: 130px;
+  height: 46px;
+  vertical-align: middle;
   font-weight: 600;
   white-space: nowrap;
 }
 
-.room-cell {
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.room-cell.available {
+.rooms-cell.available {
   background-color: #ecfdf5;
   color: #065f46;
 }
 
-.room-cell.occupied {
+.rooms-cell.occupied {
   background-color: #fffbeb;
   color: #92400e;
 }
 
-.room-cell.maintenance {
+.rooms-cell.maintenance {
   background-color: #fef2f2;
   color: #991b1b;
 }
 
-.room-cell.unknown {
+.rooms-cell.unknown {
   background-color: #f1f5f9;
   color: #94a3b8;
+}
+
+.rooms-cell-content {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rooms-cell-note {
+  font-weight: 400;
+  font-size: 11px;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: inherit;
+  opacity: 0.85;
 }
 
 .btn-schedule {
@@ -2246,6 +2296,76 @@
   font-size: 13px;
   color: #64748b;
   margin: 0 0 16px;
+}
+
+.range-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+}
+
+@media (max-width: 768px) {
+  .range-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+.range-preview {
+  font-size: 13px;
+  color: #334155;
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 0 0 16px;
+}
+
+.schedule-week-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.schedule-week-nav button {
+  padding: 6px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.schedule-week-nav button:hover:not(:disabled) {
+  background-color: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+.schedule-week-nav button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.schedule-week-nav button.btn-week-current {
+  background-color: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.schedule-week-nav button.btn-week-current:hover:not(:disabled) {
+  background-color: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.schedule-week-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
 }
 
 .schedule-editor-wrap {
@@ -2279,6 +2399,17 @@
   background-color: #f8fafc;
   color: #475569;
   font-weight: 600;
+  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.schedule-day-date {
+  font-size: 11px;
+  font-weight: 400;
+  color: #64748b;
   white-space: nowrap;
 }
 
@@ -2359,9 +2490,18 @@
     justify-content: flex-start;
   }
 
-  .rooms-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
+  .rooms-room-col,
+  .rooms-cell {
+    min-width: 120px;
+    max-width: 170px;
+  }
+
+  .rooms-table {
+    font-size: 11px;
+  }
+
+  .rooms-cell-note {
+    max-width: 130px;
   }
 }
 
