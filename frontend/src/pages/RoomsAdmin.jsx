@@ -26,8 +26,10 @@ import {
   SHIFTS,
   decodeSchedule,
   parseLocalDate,
+  fullDate,
   businessDaysBetween,
   applyScheduleRange,
+  applyScheduleOnDate,
 } from "../utils/schedule";
 
 const emptyForm = { name: "", location: "", description: "" };
@@ -100,7 +102,14 @@ const PERIOD_OPTIONS = [
   { value: "Ambos", label: "Manhã e Tarde", shifts: [...SHIFTS] },
 ];
 
-const EMPTY_RANGE_FORM = {
+const SCHEDULE_MODES = [
+  { value: "single", label: "Data específica" },
+  { value: "range", label: "Período" },
+];
+
+const EMPTY_SCHEDULE_FORM = {
+  mode: "single",
+  date: "",
   startDate: "",
   endDate: "",
   period: "Manha",
@@ -119,17 +128,22 @@ function formatDayList(days) {
 
 function ScheduleEditor({ room, onCancel }) {
   const [schedule, setSchedule] = useState(() => decodeSchedule(room.schedule));
-  const [form, setForm] = useState(EMPTY_RANGE_FORM);
+  const [form, setForm] = useState(EMPTY_SCHEDULE_FORM);
   const [fieldErrors, setFieldErrors] = useState({});
   const [appliedMessage, setAppliedMessage] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const singleDate = parseLocalDate(form.date);
   const startDate = parseLocalDate(form.startDate);
   const endDate = parseLocalDate(form.endDate);
 
   let previewText = "";
-  if (startDate && endDate && endDate >= startDate) {
+  if (form.mode === "single") {
+    if (singleDate) {
+      previewText = `Será agendado o dia ${fullDate(singleDate)}.`;
+    }
+  } else if (startDate && endDate && endDate >= startDate) {
     const days = businessDaysBetween(startDate, endDate);
     if (days.length > 0) {
       previewText = `Serão agendados os dias úteis: ${formatDayList(days)}.`;
@@ -148,16 +162,27 @@ function ScheduleEditor({ room, onCancel }) {
     }
   }
 
+  function handleModeChange(mode) {
+    setForm({ ...form, mode });
+    setFieldErrors({});
+  }
+
   function validate() {
     const errors = {};
-    if (!form.startDate) {
-      errors.startDate = "Data inicial é obrigatória.";
-    }
-    if (!form.endDate) {
-      errors.endDate = "Data final é obrigatória.";
-    }
-    if (form.startDate && form.endDate && endDate < startDate) {
-      errors.endDate = "A data final deve ser igual ou posterior à data inicial.";
+    if (form.mode === "single") {
+      if (!form.date) {
+        errors.date = "Data é obrigatória.";
+      }
+    } else {
+      if (!form.startDate) {
+        errors.startDate = "Data inicial é obrigatória.";
+      }
+      if (!form.endDate) {
+        errors.endDate = "Data final é obrigatória.";
+      }
+      if (form.startDate && form.endDate && endDate < startDate) {
+        errors.endDate = "A data final deve ser igual ou posterior à data inicial.";
+      }
     }
     if (form.situation !== "available") {
       if (!form.notes.trim()) {
@@ -181,23 +206,33 @@ function ScheduleEditor({ room, onCancel }) {
     setFieldErrors({});
 
     const period = PERIOD_OPTIONS.find((p) => p.value === form.period);
-    const next = applyScheduleRange(schedule, {
-      start: startDate,
-      end: endDate,
+    const payload = {
       shifts: period.shifts,
       situation: form.situation,
       notes: form.notes.trim(),
-    });
+    };
+    const next =
+      form.mode === "single"
+        ? applyScheduleOnDate(schedule, singleDate, payload)
+        : applyScheduleRange(schedule, {
+            start: startDate,
+            end: endDate,
+            ...payload,
+          });
 
     setSaving(true);
     try {
       await updateRoom(room.id, { schedule: next });
       setSchedule(next);
-      const days = businessDaysBetween(startDate, endDate);
       setAppliedMessage(
-        days.length === 1
-          ? "Agendamento aplicado a 1 dia útil."
-          : `Agendamento aplicado a ${days.length} dias úteis.`
+        form.mode === "single"
+          ? `Agendamento aplicado ao dia ${fullDate(singleDate)}.`
+          : (() => {
+              const days = businessDaysBetween(startDate, endDate);
+              return days.length === 1
+                ? "Agendamento aplicado a 1 dia útil."
+                : `Agendamento aplicado a ${days.length} dias úteis.`;
+            })()
       );
     } catch (err) {
       setError(err.message || "Erro ao salvar o agendamento.");
@@ -209,46 +244,81 @@ function ScheduleEditor({ room, onCancel }) {
   return (
     <div className="schedule-editor">
       <p className="schedule-editor-hint">
-        Defina o intervalo de datas, o período e a situação. O agendamento será
-        aplicado somente aos dias úteis (segunda a sexta) do intervalo.
+        {form.mode === "single"
+          ? "Escolha a data, o período e a situação. O agendamento será aplicado somente na data selecionada."
+          : "Defina o intervalo de datas, o período e a situação. O agendamento será aplicado somente aos dias úteis (segunda a sexta) do intervalo."}
       </p>
 
       {error && <div className="error">{error}</div>}
       {appliedMessage && <div className="success">{appliedMessage}</div>}
 
       <form onSubmit={handleApply} noValidate>
-        <div className="range-fields">
-          <div className="range-field">
-            <label htmlFor="rangeStart">Data inicial</label>
-            <input
-              id="rangeStart"
-              name="startDate"
-              type="date"
-              value={form.startDate}
-              onChange={handleChange}
-              className={fieldErrors.startDate ? "input-error" : ""}
+        <div className="schedule-mode-toggle">
+          {SCHEDULE_MODES.map((mode) => (
+            <button
+              key={mode.value}
+              type="button"
+              className={form.mode === mode.value ? "schedule-mode-active" : ""}
+              onClick={() => handleModeChange(mode.value)}
               disabled={saving}
-            />
-            {fieldErrors.startDate && (
-              <span className="field-error">{fieldErrors.startDate}</span>
-            )}
-          </div>
+            >
+              {mode.label}
+            </button>
+          ))}
+        </div>
 
-          <div className="range-field">
-            <label htmlFor="rangeEnd">Data final</label>
-            <input
-              id="rangeEnd"
-              name="endDate"
-              type="date"
-              value={form.endDate}
-              onChange={handleChange}
-              className={fieldErrors.endDate ? "input-error" : ""}
-              disabled={saving}
-            />
-            {fieldErrors.endDate && (
-              <span className="field-error">{fieldErrors.endDate}</span>
-            )}
-          </div>
+        <div className="range-fields">
+          {form.mode === "single" ? (
+            <div className="range-field">
+              <label htmlFor="scheduleDate">Data</label>
+              <input
+                id="scheduleDate"
+                name="date"
+                type="date"
+                value={form.date}
+                onChange={handleChange}
+                className={fieldErrors.date ? "input-error" : ""}
+                disabled={saving}
+              />
+              {fieldErrors.date && (
+                <span className="field-error">{fieldErrors.date}</span>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="range-field">
+                <label htmlFor="rangeStart">Data inicial</label>
+                <input
+                  id="rangeStart"
+                  name="startDate"
+                  type="date"
+                  value={form.startDate}
+                  onChange={handleChange}
+                  className={fieldErrors.startDate ? "input-error" : ""}
+                  disabled={saving}
+                />
+                {fieldErrors.startDate && (
+                  <span className="field-error">{fieldErrors.startDate}</span>
+                )}
+              </div>
+
+              <div className="range-field">
+                <label htmlFor="rangeEnd">Data final</label>
+                <input
+                  id="rangeEnd"
+                  name="endDate"
+                  type="date"
+                  value={form.endDate}
+                  onChange={handleChange}
+                  className={fieldErrors.endDate ? "input-error" : ""}
+                  disabled={saving}
+                />
+                {fieldErrors.endDate && (
+                  <span className="field-error">{fieldErrors.endDate}</span>
+                )}
+              </div>
+            </>
+          )}
 
           <div className="range-field">
             <label htmlFor="rangePeriod">Período</label>

@@ -40,7 +40,7 @@ export function getWeekMonday(baseDate = new Date()) {
   return monday;
 }
 
-function fullDate(date) {
+export function fullDate(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
@@ -147,20 +147,35 @@ export function businessDaysBetween(startDate, endDate) {
   return days;
 }
 
+function applyShiftsToDateKey(schedule, dayKey, { shifts, situation, notes }) {
+  const next = { ...(schedule || {}) };
+  const current = next[dayKey] || {};
+  next[dayKey] = { ...current };
+  shifts.forEach((shift) => {
+    next[dayKey][shift] = {
+      situation,
+      notes: situation === "available" ? "" : notes || "",
+    };
+  });
+  return next;
+}
+
+export function applyScheduleOnDate(schedule, date, { shifts, situation, notes }) {
+  return applyShiftsToDateKey(schedule, dateKey(date), {
+    shifts,
+    situation,
+    notes,
+  });
+}
+
 export function applyScheduleRange(
   schedule,
   { start, end, shifts, situation, notes }
 ) {
-  const next = { ...(schedule || {}) };
+  let next = { ...(schedule || {}) };
+  const opts = { shifts, situation, notes };
   businessDaysBetween(start, end).forEach(({ dateKey: dayKey }) => {
-    const current = next[dayKey] || {};
-    next[dayKey] = { ...current };
-    shifts.forEach((shift) => {
-      next[dayKey][shift] = {
-        situation,
-        notes: situation === "available" ? "" : notes || "",
-      };
-    });
+    next = applyShiftsToDateKey(next, dayKey, opts);
   });
   return next;
 }

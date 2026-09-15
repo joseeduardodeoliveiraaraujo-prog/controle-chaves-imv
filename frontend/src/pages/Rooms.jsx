@@ -53,12 +53,17 @@ export default function Rooms() {
       <Header />
 
       <main className="page-main rooms-page-main">
-        <div className="page-title-row">
-          <h2>Salas</h2>
+        <div className="rooms-panel">
+          <div className="rooms-panel-head">
+            <div className="rooms-panel-titles">
+              <h2>Salas</h2>
+              <p className="rooms-panel-subtitle">
+                Consulta pública das salas de aula e seus horários de
+                disponibilidade.
+              </p>
+            </div>
+          </div>
         </div>
-        <p className="subtitle">
-          Consulta pública das salas de aula e seus horários de disponibilidade.
-        </p>
 
         {loading ? (
           <div className="loading-inline">
@@ -71,35 +76,33 @@ export default function Rooms() {
           <p className="empty-message">Nenhuma sala cadastrada ainda.</p>
         ) : (
           <>
-            <div className="schedule-week-nav">
-              <button
-                type="button"
-                onClick={() => setWeekOffset((o) => o - 1)}
-              >
-                ‹ Semana anterior
-              </button>
-              <div className="schedule-week-label">
+            <div className="rooms-weekbar">
+              <div className="rooms-weekbar-label">
                 {`Semana de ${weekDays[0].full} a ${weekDays[4].full}`}
               </div>
-              <button
-                type="button"
-                className="btn-week-current"
-                onClick={() => setWeekOffset(0)}
-              >
-                Semana atual
-              </button>
-              <button
-                type="button"
-                onClick={() => setWeekOffset((o) => o + 1)}
-              >
-                Próxima semana ›
-              </button>
-            </div>
-
-            <div className="rooms-legend">
-              <span className="legend-item legend-available">Livre</span>
-              <span className="legend-item legend-borrowed">Ocupado</span>
-              <span className="legend-item legend-overdue">Manutenção</span>
+              <div className="rooms-weekbar-controls">
+                <button
+                  type="button"
+                  className="rooms-week-btn"
+                  onClick={() => setWeekOffset((o) => o - 1)}
+                >
+                  ‹ Semana anterior
+                </button>
+                <button
+                  type="button"
+                  className="rooms-week-btn rooms-week-btn-current"
+                  onClick={() => setWeekOffset(0)}
+                >
+                  Semana atual
+                </button>
+                <button
+                  type="button"
+                  className="rooms-week-btn"
+                  onClick={() => setWeekOffset((o) => o + 1)}
+                >
+                  Próxima semana ›
+                </button>
+              </div>
             </div>
 
             <div className="rooms-table-wrap">
