@@ -24,17 +24,21 @@ export default function Rooms() {
     loadRooms();
   }, []);
 
-  const weekStart = new Date(getWeekMonday());
-  weekStart.setDate(weekStart.getDate() + weekOffset * 7);
+  const weekStart = useMemo(() => {
+    const start = new Date(getWeekMonday());
+    start.setDate(start.getDate() + weekOffset * 7);
+    return start;
+  }, [weekOffset]);
+
   const weekDays = getWeekDates(weekStart);
 
   const roomsWithSchedule = useMemo(
     () =>
       rooms.map((room) => ({
         room,
-        byDay: normalizeSchedule(room.schedule),
+        byDay: normalizeSchedule(room.schedule, weekStart),
       })),
-    [rooms],
+    [rooms, weekStart],
   );
 
   async function loadRooms() {
