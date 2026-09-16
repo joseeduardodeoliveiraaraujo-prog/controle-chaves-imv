@@ -18,7 +18,7 @@ const DAY_SHORT = {
 
 const EMPTY_ENTRY = { situation: "available", notes: "" };
 
-function dateKey(date) {
+export function dateKey(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
@@ -38,6 +38,50 @@ export function getWeekMonday(baseDate = new Date()) {
   monday.setHours(0, 0, 0, 0);
   monday.setDate(monday.getDate() + diffToMonday);
   return monday;
+}
+
+export function getPreviousWeekMonday(baseDate = new Date()) {
+  const monday = getWeekMonday(baseDate);
+  monday.setDate(monday.getDate() - 7);
+  return monday;
+}
+
+const SCHEDULE_DATE_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export function removeExpiredScheduleDates(schedule, baseDate = new Date()) {
+  if (!schedule || typeof schedule !== "object" || Array.isArray(schedule)) {
+    return { schedule, changed: false };
+  }
+  const cutoffKey = dateKey(getPreviousWeekMonday(baseDate));
+  const next = {};
+  let changed = false;
+  Object.entries(schedule).forEach(([dayKey, shifts]) => {
+    if (SCHEDULE_DATE_KEY_RE.test(dayKey) && dayKey < cutoffKey) {
+      changed = true;
+      return;
+    }
+    next[dayKey] = shifts;
+  });
+  return changed
+    ? { schedule: next, changed: true }
+    : { schedule, changed: false };
+}
+
+export function hasScheduledDates(schedule) {
+  if (!schedule || typeof schedule !== "object" || Array.isArray(schedule)) {
+    return false;
+  }
+  return Object.entries(schedule).some(([dayKey, day]) => {
+    if (!SCHEDULE_DATE_KEY_RE.test(dayKey)) return false;
+    return (
+      day &&
+      typeof day === "object" &&
+      !Array.isArray(day) &&
+      Object.values(day).some(
+        (shift) => shift && typeof shift === "object" && !Array.isArray(shift)
+      )
+    );
+  });
 }
 
 export function fullDate(date) {
@@ -119,6 +163,25 @@ export function parseLocalDate(value) {
   const parts = value.split("-").map(Number);
   if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return null;
   return new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+}
+
+export function getScheduleLimitDate(baseDate = new Date()) {
+  const y = baseDate.getFullYear();
+  const targetMonth = baseDate.getMonth() + 3;
+  const lastDayOfTarget = new Date(y, targetMonth + 1, 0).getDate();
+  const d = Math.min(baseDate.getDate(), lastDayOfTarget);
+  return new Date(y, targetMonth, d, 0, 0, 0, 0);
+}
+
+export function isDateAllowedForSchedule(date, limitDate) {
+  if (!date || !limitDate) return true;
+  const a = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const b = new Date(
+    limitDate.getFullYear(),
+    limitDate.getMonth(),
+    limitDate.getDate()
+  );
+  return a <= b;
 }
 
 export function businessDaysBetween(startDate, endDate) {

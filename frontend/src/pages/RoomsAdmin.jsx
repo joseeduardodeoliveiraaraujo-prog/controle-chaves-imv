@@ -20,6 +20,7 @@ import {
   updateRoom,
   deleteRoom,
   saveRoomsOrder,
+  resetRoomSchedule,
 } from "../services/firestore";
 import Modal from "../components/Modal";
 import {
@@ -27,9 +28,13 @@ import {
   decodeSchedule,
   parseLocalDate,
   fullDate,
+  dateKey,
+  getScheduleLimitDate,
+  isDateAllowedForSchedule,
   businessDaysBetween,
   applyScheduleRange,
   applyScheduleOnDate,
+  hasScheduledDates,
 } from "../utils/schedule";
 
 const emptyForm = { name: "", location: "", description: "" };
@@ -117,7 +122,7 @@ const EMPTY_SCHEDULE_FORM = {
   notes: "",
 };
 
-const NOTES_LIMIT = 120;
+const NOTES_LIMIT = 50;
 
 function formatDayList(days) {
   const list = days.map((d) => d.short);
@@ -126,13 +131,18 @@ function formatDayList(days) {
   return `${list.slice(0, -1).join(", ")} e ${list[list.length - 1]}`;
 }
 
-function ScheduleEditor({ room, onCancel }) {
+function ScheduleEditor({ room, onCancel, onScheduleReset }) {
   const [schedule, setSchedule] = useState(() => decodeSchedule(room.schedule));
   const [form, setForm] = useState(EMPTY_SCHEDULE_FORM);
   const [fieldErrors, setFieldErrors] = useState({});
   const [appliedMessage, setAppliedMessage] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const scheduleLimit = useMemo(() => getScheduleLimitDate(), []);
+  const scheduleLimitLabel = fullDate(scheduleLimit);
+  const scheduleLimitKey = dateKey(scheduleLimit);
+  const limitMessage = `Só é possível agendar até ${scheduleLimitLabel} (limite de 3 meses).`;
 
   const singleDate = parseLocalDate(form.date);
   const startDate = parseLocalDate(form.startDate);
@@ -172,13 +182,19 @@ function ScheduleEditor({ room, onCancel }) {
     if (form.mode === "single") {
       if (!form.date) {
         errors.date = "Data é obrigatória.";
+      } else if (!isDateAllowedForSchedule(singleDate, scheduleLimit)) {
+        errors.date = limitMessage;
       }
     } else {
       if (!form.startDate) {
         errors.startDate = "Data inicial é obrigatória.";
+      } else if (!isDateAllowedForSchedule(startDate, scheduleLimit)) {
+        errors.startDate = limitMessage;
       }
       if (!form.endDate) {
         errors.endDate = "Data final é obrigatória.";
+      } else if (!isDateAllowedForSchedule(endDate, scheduleLimit)) {
+        errors.endDate = limitMessage;
       }
       if (form.startDate && form.endDate && endDate < startDate) {
         errors.endDate = "A data final deve ser igual ou posterior à data inicial.";
@@ -241,13 +257,41 @@ function ScheduleEditor({ room, onCancel }) {
     }
   }
 
+  async function handleResetSchedule() {
+    if (
+      !window.confirm(
+        "Todos os agendamentos desta sala serão apagados permanentemente. Esta ação não pode ser desfeita. Deseja continuar?"
+      )
+    ) {
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+    setAppliedMessage("");
+    try {
+      await resetRoomSchedule(room.id);
+      onScheduleReset(room.id);
+      onCancel();
+    } catch (err) {
+      setError(err.message || "Erro ao resetar os agendamentos.");
+      setSaving(false);
+    }
+  }
+
   return (
     <div className="schedule-editor">
       <p className="schedule-editor-hint">
         {form.mode === "single"
-          ? "Escolha a data, o período e a situação. O agendamento será aplicado somente na data selecionada."
-          : "Defina o intervalo de datas, o período e a situação. O agendamento será aplicado somente aos dias úteis (segunda a sexta) do intervalo."}
+          ? "Escolha a data, o turno e a situação. O agendamento será aplicado somente na data selecionada."
+          : "Defina o intervalo de datas, o turno e a situação. O agendamento será aplicado somente aos dias úteis (segunda a sexta) do intervalo."}
       </p>
+      {form.mode === "range" && (
+        <p className="schedule-editor-limit">
+          O limite para criação de agendamentos é de 3 meses: só é possível
+          agendar até {scheduleLimitLabel}.
+        </p>
+      )}
 
       {error && <div className="error">{error}</div>}
       {appliedMessage && <div className="success">{appliedMessage}</div>}
@@ -277,6 +321,7 @@ function ScheduleEditor({ room, onCancel }) {
                 type="date"
                 value={form.date}
                 onChange={handleChange}
+                max={scheduleLimitKey}
                 className={fieldErrors.date ? "input-error" : ""}
                 disabled={saving}
               />
@@ -294,6 +339,7 @@ function ScheduleEditor({ room, onCancel }) {
                   type="date"
                   value={form.startDate}
                   onChange={handleChange}
+                  max={scheduleLimitKey}
                   className={fieldErrors.startDate ? "input-error" : ""}
                   disabled={saving}
                 />
@@ -310,6 +356,7 @@ function ScheduleEditor({ room, onCancel }) {
                   type="date"
                   value={form.endDate}
                   onChange={handleChange}
+                  max={scheduleLimitKey}
                   className={fieldErrors.endDate ? "input-error" : ""}
                   disabled={saving}
                 />
@@ -321,7 +368,7 @@ function ScheduleEditor({ room, onCancel }) {
           )}
 
           <div className="range-field">
-            <label htmlFor="rangePeriod">Período</label>
+            <label htmlFor="rangePeriod">Turno</label>
             <select
               id="rangePeriod"
               name="period"
@@ -389,7 +436,15 @@ function ScheduleEditor({ room, onCancel }) {
         <div className="schedule-editor-footer">
           <button
             type="button"
-            className="btn-cancel"
+            className="btn-reset-schedule"
+            onClick={handleResetSchedule}
+            disabled={saving}
+          >
+            Resetar agendamentos
+          </button>
+          <button
+            type="button"
+            className="btn-schedule-cancel"
             onClick={onCancel}
             disabled={saving}
           >
@@ -522,6 +577,14 @@ export default function RoomsAdmin() {
   }
 
   async function handleDelete(id) {
+    const room = rooms.find((r) => r.id === id);
+    if (room && hasScheduledDates(room.schedule)) {
+      setError(
+        "Não é possível excluir esta sala enquanto houver agendamentos. Use 'Resetar agendamentos' primeiro."
+      );
+      return;
+    }
+
     if (!confirm("Tem certeza que deseja excluir esta sala?")) return;
 
     try {
@@ -761,6 +824,13 @@ export default function RoomsAdmin() {
           <ScheduleEditor
             room={scheduleRoom}
             onCancel={() => setScheduleRoom(null)}
+            onScheduleReset={(roomId) =>
+              setRooms((prev) =>
+                prev.map((r) =>
+                  r.id === roomId ? { ...r, schedule: {} } : r
+                )
+              )
+            }
           />
         </Modal>
       )}

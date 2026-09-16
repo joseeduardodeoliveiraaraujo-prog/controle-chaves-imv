@@ -33,9 +33,8 @@ export default function Login() {
         <img src={chaveImg} alt="Controle de Chaves" className="login-visual-img" />
         <div className="login-visual-overlay" />
         <div className="login-visual-content">
-          <div className="login-visual-icon">&#128273;</div>
-          <h2>Controle de Chaves</h2>
-          <p>Sistema de gerenciamento de chaves</p>
+          <h2>Controle de Chaves e Salas</h2>
+          <p>Sistema de gerenciamento de chaves e salas</p>
         </div>
       </div>
 

@@ -2392,6 +2392,16 @@
   margin: 0 0 16px;
 }
 
+.schedule-editor-limit {
+  font-size: 13px;
+  color: #92400e;
+  background-color: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 0 0 16px;
+}
+
 .range-fields {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2559,6 +2569,46 @@
   align-items: center;
   gap: 8px;
   margin-top: 16px;
+}
+
+.schedule-editor-footer .btn-schedule-cancel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background-color: white;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.schedule-editor-footer .btn-schedule-cancel:hover:not(:disabled) {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.schedule-editor-footer .btn-reset-schedule {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.schedule-editor-footer .btn-reset-schedule:hover:not(:disabled) {
+  background-color: #fee2e2;
+  border-color: #fca5a5;
 }
 
 .schedule-editor-footer button:disabled {

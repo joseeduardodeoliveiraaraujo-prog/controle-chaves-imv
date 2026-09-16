@@ -12,7 +12,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { db } from "../config/firebase";
-import { createDefaultSchedule } from "../utils/schedule";
+import { removeExpiredScheduleDates } from "../utils/schedule";
 
 const keysCollection = collection(db, "keys");
 
@@ -241,7 +241,7 @@ const roomsCollection = collection(db, "rooms");
 export async function addRoom(roomData, nextOrdem) {
   const docRef = await addDoc(roomsCollection, {
     ...roomData,
-    schedule: roomData.schedule ?? createDefaultSchedule(),
+    schedule: roomData.schedule ?? {},
     ordem: nextOrdem,
     createdAt: serverTimestamp(),
   });
@@ -254,12 +254,39 @@ export async function getRooms() {
     id: d.id,
     ...d.data(),
   }));
-  return rooms.sort((a, b) => (a.ordem ?? Infinity) - (b.ordem ?? Infinity));
+  rooms.sort((a, b) => (a.ordem ?? Infinity) - (b.ordem ?? Infinity));
+
+  try {
+    const batch = writeBatch(db);
+    let updated = 0;
+    const cleaned = rooms.map((room) => {
+      const result = removeExpiredScheduleDates(room.schedule);
+      if (!result.changed) return room;
+      updated += 1;
+      batch.update(doc(db, "rooms", room.id), {
+        schedule: result.schedule,
+      });
+      return { ...room, schedule: result.schedule };
+    });
+    if (updated > 0) await batch.commit();
+    return cleaned;
+  } catch (err) {
+    console.warn(
+      "Limpeza de agendamentos expirados falhou; exibindo dados carregados.",
+      err
+    );
+    return rooms;
+  }
 }
 
 export async function updateRoom(id, roomData) {
   const roomRef = doc(db, "rooms", id);
   await updateDoc(roomRef, roomData);
+}
+
+export async function resetRoomSchedule(roomId) {
+  const roomRef = doc(db, "rooms", roomId);
+  await updateDoc(roomRef, { schedule: {} });
 }
 
 export async function saveRoomsOrder(orderedRooms) {
