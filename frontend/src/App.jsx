@@ -6,6 +6,8 @@ import Dashboard from "./pages/Dashboard";
 import Keys from "./pages/Keys";
 import People from "./pages/People";
 import History from "./pages/History";
+import Rooms from "./pages/Rooms";
+import RoomsAdmin from "./pages/RoomsAdmin";
 import "./App.css";
 
 function App() {
@@ -14,6 +16,15 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/salas" element={<Rooms />} />
+          <Route
+            path="/salas/admin"
+            element={
+              <PrivateRoute>
+                <RoomsAdmin />
+              </PrivateRoute>
+            }
+          />
           <Route
             path="/dashboard"
             element={

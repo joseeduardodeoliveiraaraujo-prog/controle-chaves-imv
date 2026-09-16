@@ -39,5 +39,14 @@ service cloud.firestore {
       allow update: if isAuthenticated();
       allow delete: if isAuthenticated();
     }
+
+    // Regra para a coleção rooms
+    // Leitura pública (visualização das salas) e escrita apenas autenticada
+    match /rooms/{roomId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
   }
 }
