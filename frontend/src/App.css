@@ -129,6 +129,40 @@
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
+.password-wrapper {
+  position: relative;
+}
+
+.password-wrapper input {
+  padding-right: 44px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #64748b;
+  transition: color 0.15s ease;
+}
+
+.password-toggle:hover {
+  color: #334155;
+}
+
+.password-toggle:focus-visible {
+  outline: none;
+  color: #2563eb;
+}
+
 .login-btn {
   width: 100%;
   padding: 12px;
