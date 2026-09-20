@@ -1,3 +1,5 @@
 AGENTS.md
 .env
 frontend/.env
+service-account*.json
+frontend/service-account*.json
