@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/Header";
 import { getRooms } from "../services/firestore";
 import {
@@ -15,6 +16,7 @@ const SITUATIONS = {
 };
 
 export default function Rooms() {
+  const { user } = useAuth();
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -54,7 +56,7 @@ export default function Rooms() {
 
   return (
     <div className="page-container">
-      <Header />
+      {user && <Header />}
 
       <main className="page-main rooms-page-main">
         <div className="rooms-panel">

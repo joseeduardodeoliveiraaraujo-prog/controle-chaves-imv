@@ -8,6 +8,10 @@ import {
   serverTimestamp,
   query,
   where,
+  orderBy,
+  limit,
+  startAfter,
+  getCountFromServer,
   runTransaction,
   writeBatch,
 } from "firebase/firestore";
@@ -117,6 +121,27 @@ export async function deleteKey(id) {
 const peopleCollection = collection(db, "people");
 const movementsCollection = collection(db, "movements");
 
+const MOVEMENTS_PAGE_SIZE = 80;
+const MAX_MOVEMENTS = 2000;
+const MAX_TRIM_PER_WITHDRAWAL = 200;
+
+function startOfLocalDay(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d, 0, 0, 0, 0);
+}
+
+function endOfLocalDay(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d, 23, 59, 59, 999);
+}
+
+function buildMovementDateConstraints(dateFrom, dateTo) {
+  const constraints = [];
+  if (dateFrom) constraints.push(where("borrowedAt", ">=", startOfLocalDay(dateFrom)));
+  if (dateTo) constraints.push(where("borrowedAt", "<=", endOfLocalDay(dateTo)));
+  return constraints;
+}
+
 export async function addPerson(personData) {
   const docRef = await addDoc(peopleCollection, {
     ...personData,
@@ -165,6 +190,34 @@ export async function getActiveMovements() {
   }));
 }
 
+async function collectOldestReturnedMovementRefs(needed) {
+  let cursor = null;
+  const refs = [];
+  const chunkSize = 100;
+  const maxScans = 20;
+
+  for (let scan = 0; scan < maxScans && refs.length < needed; scan++) {
+    let q = query(
+      movementsCollection,
+      orderBy("borrowedAt", "asc"),
+      limit(chunkSize)
+    );
+    if (cursor) q = query(q, startAfter(cursor));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) break;
+
+    for (const doc of snapshot.docs) {
+      if (refs.length >= needed) break;
+      if (doc.data().status === "returned") refs.push(doc.ref);
+    }
+
+    if (snapshot.docs.length < chunkSize) break;
+    cursor = snapshot.docs[snapshot.docs.length - 1];
+  }
+
+  return refs;
+}
+
 export async function withdrawKey(
   keyId,
   keyName,
@@ -175,12 +228,27 @@ export async function withdrawKey(
 ) {
   const { personPhone = "", personType = "registered" } = options;
 
+  const countSnapshot = await getCountFromServer(movementsCollection);
+  const total = countSnapshot.data().count;
+  const excess = total + 1 - MAX_MOVEMENTS;
+  const trimNeeded = Math.min(excess, MAX_TRIM_PER_WITHDRAWAL);
+
+  const candidates =
+    trimNeeded > 0 ? await collectOldestReturnedMovementRefs(trimNeeded) : [];
+
   await runTransaction(db, async (transaction) => {
     const keyRef = doc(db, "keys", keyId);
     const keyDoc = await transaction.get(keyRef);
 
     if (!keyDoc.exists() || keyDoc.data().status !== "available") {
       throw new Error("Esta chave não está disponível para retirada.");
+    }
+
+    for (const candidateRef of candidates) {
+      const candidateDoc = await transaction.get(candidateRef);
+      if (candidateDoc.exists() && candidateDoc.data().status === "returned") {
+        transaction.delete(candidateRef);
+      }
     }
 
     const movementRef = doc(movementsCollection);
@@ -228,12 +296,44 @@ export async function returnKey(movementId, keyId) {
   });
 }
 
-export async function getAllMovements() {
-  const snapshot = await getDocs(movementsCollection);
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  }));
+export async function getHistoryPage({
+  pageSize = MOVEMENTS_PAGE_SIZE,
+  after = null,
+  dateFrom = "",
+  dateTo = "",
+} = {}) {
+  const base = query(
+    movementsCollection,
+    orderBy("borrowedAt", "desc"),
+    ...buildMovementDateConstraints(dateFrom, dateTo)
+  );
+  const pageQuery = after
+    ? query(base, startAfter(after), limit(pageSize))
+    : query(base, limit(pageSize));
+
+  const [pageSnapshot, countSnapshot] = await Promise.all([
+    getDocs(pageQuery),
+    getCountFromServer(base),
+  ]);
+
+  return {
+    documents: pageSnapshot.docs.map((d) => ({ id: d.id, ...d.data() })),
+    lastDoc: pageSnapshot.docs.length
+      ? pageSnapshot.docs[pageSnapshot.docs.length - 1]
+      : null,
+    count: countSnapshot.data().count,
+  };
+}
+
+export async function getMovementsForSearch({ dateFrom = "", dateTo = "" } = {}) {
+  const q = query(
+    movementsCollection,
+    orderBy("borrowedAt", "desc"),
+    ...buildMovementDateConstraints(dateFrom, dateTo),
+    limit(MAX_MOVEMENTS)
+  );
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
 const roomsCollection = collection(db, "rooms");
