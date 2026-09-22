@@ -12,6 +12,7 @@ const KEY_ENV_LINKS = [
 const SALAS_ENV_LINKS = [
   { to: "/salas", label: "Painel" },
   { to: "/salas/admin", label: "Salas" },
+  { to: "/salas/agendamento", label: "Agendamento" },
 ];
 
 export default function Header({ showUser = false }) {

@@ -2650,6 +2650,14 @@
   cursor: not-allowed;
 }
 
+.page-main.schedule-page {
+  max-width: 560px;
+}
+
+.schedule-page .withdrawal-section:first-of-type {
+  padding-top: 0;
+}
+
 @media (max-width: 768px) {
   .rooms-panel-head {
     padding: 18px 16px;

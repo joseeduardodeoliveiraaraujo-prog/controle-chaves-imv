@@ -8,6 +8,7 @@ import People from "./pages/People";
 import History from "./pages/History";
 import Rooms from "./pages/Rooms";
 import RoomsAdmin from "./pages/RoomsAdmin";
+import RoomSchedule from "./pages/RoomSchedule";
 import "./App.css";
 
 function App() {
@@ -22,6 +23,14 @@ function App() {
             element={
               <PrivateRoute>
                 <RoomsAdmin />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/salas/agendamento"
+            element={
+              <PrivateRoute>
+                <RoomSchedule />
               </PrivateRoute>
             }
           />
