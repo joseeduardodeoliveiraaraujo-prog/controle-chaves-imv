@@ -60,8 +60,13 @@ export default function RoomSchedule() {
       <Header showUser />
 
       <main className="page-main schedule-page">
-        <div className="page-title-row">
-          <h2>Agendamento de Salas</h2>
+        <div className="page-title-row schedule-title-row">
+          <div>
+            <h2>Agendamento de Salas</h2>
+            <p className="schedule-subtitle">
+              Selecione uma sala e defina o agendamento.
+            </p>
+          </div>
         </div>
 
         {loading ? (
@@ -75,10 +80,15 @@ export default function RoomSchedule() {
           <p className="empty-message">Nenhuma sala cadastrada ainda.</p>
         ) : (
           <>
-            <section className="withdrawal-section">
-              <div className="withdrawal-section-head">
-                <span className="withdrawal-step" aria-hidden="true">1</span>
-                <h3 className="withdrawal-section-title">Sala</h3>
+            <section className="schedule-card">
+              <div className="schedule-card-head">
+                <span className="schedule-step" aria-hidden="true">1</span>
+                <div className="schedule-card-titles">
+                  <h3 className="schedule-card-title">Selecionar sala</h3>
+                  <p className="schedule-card-sub">
+                    Escolha a sala que será agendada.
+                  </p>
+                </div>
               </div>
 
               <SearchableSelect
@@ -97,12 +107,17 @@ export default function RoomSchedule() {
             </section>
 
             {selectedRoomObj ? (
-              <section className="withdrawal-section">
-                <div className="withdrawal-section-head">
-                  <span className="withdrawal-step" aria-hidden="true">2</span>
-                  <h3 className="withdrawal-section-title">
-                    Agendamento — {selectedRoomObj.name}
-                  </h3>
+              <section className="schedule-card">
+                <div className="schedule-card-head">
+                  <span className="schedule-step" aria-hidden="true">2</span>
+                  <div className="schedule-card-titles">
+                    <h3 className="schedule-card-title">
+                      Agendamento — {selectedRoomObj.name}
+                    </h3>
+                    <p className="schedule-card-sub">
+                      Defina a data, o turno e a situação da sala.
+                    </p>
+                  </div>
                 </div>
 
                 <ScheduleEditor
@@ -113,9 +128,12 @@ export default function RoomSchedule() {
                 />
               </section>
             ) : (
-              <p className="empty-message">
-                Selecione uma sala acima para fazer o agendamento.
-              </p>
+              <div className="schedule-empty">
+                <span className="schedule-empty-icon" aria-hidden="true">
+                  🗓️
+                </span>
+                <p>Selecione uma sala acima para fazer o agendamento.</p>
+              </div>
             )}
           </>
         )}

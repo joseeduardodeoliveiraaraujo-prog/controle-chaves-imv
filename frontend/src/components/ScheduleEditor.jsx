@@ -305,7 +305,11 @@ export default function ScheduleEditor({ room, onCancel, onScheduleReset }) {
             </select>
           </div>
 
-          <div className="range-field">
+          <div
+            className={`range-field ${
+              form.mode === "single" ? "range-field-full" : ""
+            }`}
+          >
             <label htmlFor="rangeSituation">Situação</label>
             <select
               id="rangeSituation"
@@ -363,17 +367,19 @@ export default function ScheduleEditor({ room, onCancel, onScheduleReset }) {
           >
             Resetar agendamentos
           </button>
-          <button
-            type="button"
-            className="btn-schedule-cancel"
-            onClick={onCancel}
-            disabled={saving}
-          >
-            Cancelar
-          </button>
-          <button type="submit" className="btn-save-organize" disabled={saving}>
-            {saving ? "Aplicando..." : "Aplicar"}
-          </button>
+          <div className="schedule-editor-actions">
+            <button
+              type="button"
+              className="btn-schedule-cancel"
+              onClick={onCancel}
+              disabled={saving}
+            >
+              Cancelar
+            </button>
+            <button type="submit" className="btn-save-organize" disabled={saving}>
+              {saving ? "Aplicando..." : "Aplicar"}
+            </button>
+          </div>
         </div>
       </form>
     </div>

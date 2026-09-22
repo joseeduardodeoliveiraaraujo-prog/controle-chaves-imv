@@ -2439,13 +2439,17 @@
 .range-fields {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0 16px;
+  gap: 0 20px;
 }
 
 @media (max-width: 768px) {
   .range-fields {
     grid-template-columns: 1fr;
   }
+}
+
+.range-field-full {
+  grid-column: 1 / -1;
 }
 
 .range-preview {
@@ -2460,32 +2464,37 @@
 
 .schedule-mode-toggle {
   display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 4px;
+  width: 100%;
+  padding: 4px;
+  margin-bottom: 20px;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
 }
 
 .schedule-mode-toggle button {
   flex: 1;
-  padding: 8px 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  background-color: #f8fafc;
-  color: #475569;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: #64748b;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .schedule-mode-toggle button:hover:not(:disabled):not(.schedule-mode-active) {
-  background-color: #e2e8f0;
-  border-color: #94a3b8;
+  color: #334155;
 }
 
 .schedule-mode-toggle button.schedule-mode-active {
-  background-color: #2563eb;
-  border-color: #2563eb;
-  color: #ffffff;
+  background-color: white;
+  color: #2563eb;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 .schedule-mode-toggle button:disabled {
@@ -2599,10 +2608,24 @@
 
 .schedule-editor-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
   gap: 8px;
-  margin-top: 16px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #eef2f7;
+}
+
+.schedule-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.schedule-editor-footer .btn-save-organize {
+  min-width: 128px;
+  padding: 9px 18px;
+  font-size: 14px;
 }
 
 .schedule-editor-footer .btn-schedule-cancel {
@@ -2651,11 +2674,169 @@
 }
 
 .page-main.schedule-page {
-  max-width: 560px;
+  max-width: 800px;
 }
 
-.schedule-page .withdrawal-section:first-of-type {
-  padding-top: 0;
+/* ========================================
+   SCHEDULE PAGE (Agendamento de Salas)
+   ======================================== */
+
+.schedule-title-row {
+  margin-bottom: 24px;
+}
+
+.schedule-title-row h2 {
+  margin-bottom: 0;
+}
+
+.schedule-subtitle {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.schedule-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.schedule-card:last-child {
+  margin-bottom: 0;
+}
+
+.schedule-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.schedule-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background-color: #eef2ff;
+  color: #4338ca;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.schedule-card-titles {
+  min-width: 0;
+}
+
+.schedule-card-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.schedule-card-sub {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.schedule-card .searchable-select {
+  margin-bottom: 0;
+}
+
+.schedule-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 44px 24px;
+  background: white;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.schedule-empty-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.schedule-empty p {
+  margin: 0;
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+.schedule-editor .range-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 18px;
+}
+
+.schedule-editor label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.schedule-editor .char-count {
+  float: right;
+  font-size: 12px;
+  font-weight: 400;
+  color: #94a3b8;
+}
+
+.schedule-editor input[type="date"],
+.schedule-editor input[type="text"],
+.schedule-editor select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  background-color: white;
+  color: #0f172a;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.schedule-editor input::placeholder {
+  color: #94a3b8;
+}
+
+.schedule-editor select {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
+  padding-right: 34px;
+}
+
+.schedule-editor input[type="date"]:focus,
+.schedule-editor input[type="text"]:focus,
+.schedule-editor select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.schedule-editor .field-error {
+  margin-top: 6px;
+  margin-bottom: 0;
 }
 
 @media (max-width: 768px) {
@@ -2688,6 +2869,33 @@
 
   .rooms-cell-note {
     max-width: 120px;
+  }
+
+  .schedule-card {
+    padding: 20px 16px;
+  }
+
+  .schedule-card-head {
+    margin-bottom: 16px;
+  }
+
+  .schedule-editor-footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .schedule-editor-actions {
+    width: 100%;
+  }
+
+  .schedule-editor-actions button {
+    flex: 1;
+  }
+
+  .schedule-editor-footer .btn-reset-schedule {
+    justify-content: center;
+    width: 100%;
   }
 }
 
