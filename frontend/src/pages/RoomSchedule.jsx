@@ -4,6 +4,7 @@ import Header from "../components/Header";
 import SearchableSelect from "../components/SearchableSelect";
 import ScheduleEditor from "../components/ScheduleEditor";
 import { getRooms } from "../services/firestore";
+import fechaduraPorta from "../assets/fechadura_porta.png";
 
 export default function RoomSchedule() {
   const { state } = useLocation();
@@ -100,7 +101,13 @@ export default function RoomSchedule() {
                 value={selectedRoom}
                 onChange={handleRoomChange}
                 searchFields={["name", "location"]}
-                getIcon={() => "🚪"}
+                getIcon={() => (
+                  <img
+                    src={fechaduraPorta}
+                    alt=""
+                    className="room-select-icon"
+                  />
+                )}
                 getTitle={(room) => room.name}
                 getSubtitle={(room) => room.location}
               />

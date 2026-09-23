@@ -1465,6 +1465,22 @@
   margin-top: 2px;
 }
 
+.room-select-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
+}
+
+.select-icon-img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
+}
+
 .searchable-select-item-text {
   display: flex;
   flex-direction: column;
