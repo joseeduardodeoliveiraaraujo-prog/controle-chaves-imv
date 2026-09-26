@@ -192,10 +192,14 @@ export default function ScheduleEditor({ room, onCancel, onScheduleReset }) {
     setAppliedMessage("");
     try {
       await resetRoomSchedule(room.id);
+      setSchedule(decodeSchedule({}));
+      setForm(EMPTY_SCHEDULE_FORM);
+      setFieldErrors({});
       onScheduleReset(room.id);
-      onCancel();
+      setAppliedMessage("Agendamentos da sala foram resetados.");
     } catch (err) {
       setError(err.message || "Erro ao resetar os agendamentos.");
+    } finally {
       setSaving(false);
     }
   }
