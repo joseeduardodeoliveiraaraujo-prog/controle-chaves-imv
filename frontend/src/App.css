@@ -2692,6 +2692,183 @@
   cursor: not-allowed;
 }
 
+/* ========================================
+   SCHEDULE CALENDAR (seleção múltipla)
+   ======================================== */
+
+.schedule-calendar {
+  padding: 12px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.schedule-calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.schedule-calendar-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.schedule-calendar-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background-color: white;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.schedule-calendar-nav:hover:not(:disabled) {
+  background-color: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.schedule-calendar-nav:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.schedule-calendar-weekdays,
+.schedule-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.schedule-calendar-weekday {
+  padding: 2px 0;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.schedule-calendar-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1 / 1;
+  min-height: 34px;
+  padding: 0;
+  background-color: white;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.schedule-calendar-day:hover:not(:disabled) {
+  background-color: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.schedule-calendar-day.is-today {
+  border-color: #2563eb;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.schedule-calendar-day.is-selected,
+.schedule-calendar-day.is-selected:hover:not(:disabled) {
+  background-color: #2563eb;
+  border-color: #2563eb;
+  color: white;
+  font-weight: 600;
+}
+
+.schedule-calendar-day.is-disabled {
+  background-color: #f1f5f9;
+  border-color: #eef2f7;
+  color: #cbd5e1;
+  font-weight: 500;
+  cursor: not-allowed;
+}
+
+.schedule-calendar-day.is-outside {
+  background-color: transparent;
+  border-color: transparent;
+  color: #e2e8f0;
+  cursor: not-allowed;
+}
+
+.schedule-selection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+}
+
+.schedule-selection-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.schedule-selection-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1d4ed8;
+}
+
+.schedule-selection-value {
+  font-size: 13px;
+  color: #1e3a8a;
+  word-break: break-word;
+}
+
+.btn-clear-dates {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  background-color: white;
+  color: #475569;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-clear-dates:hover:not(:disabled) {
+  background-color: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.btn-clear-dates:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .page-main.schedule-page {
   max-width: 800px;
 }
@@ -2915,6 +3092,25 @@
   .schedule-editor-footer .btn-reset-schedule {
     justify-content: center;
     width: 100%;
+  }
+
+  .schedule-calendar {
+    padding: 10px;
+  }
+
+  .schedule-calendar-day {
+    min-height: 30px;
+    font-size: 12px;
+  }
+
+  .schedule-calendar-weekdays,
+  .schedule-calendar-grid {
+    gap: 3px;
+  }
+
+  .schedule-selection {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 

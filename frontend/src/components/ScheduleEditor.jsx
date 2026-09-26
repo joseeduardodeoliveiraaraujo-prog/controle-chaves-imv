@@ -15,6 +15,7 @@ import {
   applyScheduleRange,
   applyScheduleOnDate,
 } from "../utils/schedule";
+import ScheduleCalendar from "./ScheduleCalendar";
 
 const SITUATION_OPTIONS = [
   { value: "occupied", label: "Ocupado" },
@@ -29,13 +30,13 @@ const PERIOD_OPTIONS = [
 ];
 
 const SCHEDULE_MODES = [
-  { value: "single", label: "Data específica" },
+  { value: "calendar", label: "Datas específicas" },
   { value: "range", label: "Período" },
 ];
 
 const EMPTY_SCHEDULE_FORM = {
-  mode: "single",
-  date: "",
+  mode: "calendar",
+  dates: [],
   startDate: "",
   endDate: "",
   period: "Manha",
@@ -44,6 +45,8 @@ const EMPTY_SCHEDULE_FORM = {
 };
 
 const NOTES_LIMIT = 50;
+
+const MAX_LISTED_DATES = 5;
 
 function formatDayList(days) {
   const list = days.map((d) => d.short);
@@ -60,25 +63,38 @@ export default function ScheduleEditor({ room, onCancel, onScheduleReset }) {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const scheduleLimit = useMemo(() => getScheduleLimitDate(), []);
+  const today = new Date();
+  const scheduleLimit = getScheduleLimitDate(today);
   const scheduleLimitLabel = fullDate(scheduleLimit);
   const scheduleLimitKey = dateKey(scheduleLimit);
+  const todayKey = dateKey(today);
   const limitMessage = `Só é possível agendar até ${scheduleLimitLabel} (limite de 3 meses).`;
+  const pastMessage = "A data não pode ser anterior à data de hoje.";
 
-  const singleDate = parseLocalDate(form.date);
   const startDate = parseLocalDate(form.startDate);
   const endDate = parseLocalDate(form.endDate);
+  const selectedDates = useMemo(() => [...(form.dates || [])].sort(), [
+    form.dates,
+  ]);
 
   let previewText = "";
-  if (form.mode === "single") {
-    if (singleDate) {
-      previewText = `Será agendado o dia ${fullDate(singleDate)}.`;
+  if (form.mode === "range") {
+    if (startDate && endDate && endDate >= startDate) {
+      const days = businessDaysBetween(startDate, endDate);
+      if (days.length > 0) {
+        previewText = `Serão agendados os dias úteis: ${formatDayList(days)}.`;
+      }
     }
-  } else if (startDate && endDate && endDate >= startDate) {
-    const days = businessDaysBetween(startDate, endDate);
-    if (days.length > 0) {
-      previewText = `Serão agendados os dias úteis: ${formatDayList(days)}.`;
-    }
+  }
+
+  let selectionText = "";
+  if (selectedDates.length > 0) {
+    selectionText =
+      selectedDates.length <= MAX_LISTED_DATES
+        ? selectedDates.map((key) => fullDate(parseLocalDate(key))).join(" · ")
+        : `${selectedDates.length} dias · ${fullDate(
+            parseLocalDate(selectedDates[0])
+          )} a ${fullDate(parseLocalDate(selectedDates[selectedDates.length - 1]))}`;
   }
 
   function handleChange(e) {
@@ -98,22 +114,63 @@ export default function ScheduleEditor({ room, onCancel, onScheduleReset }) {
     setFieldErrors({});
   }
 
+  function isDateBeforeToday(date) {
+    return Boolean(date) && dateKey(date) < todayKey;
+  }
+
+  function isDateSelectable(key) {
+    const date = parseLocalDate(key);
+    if (!date || dateKey(date) !== key) return false;
+    const day = date.getDay();
+    if (day === 0 || day === 6) return false;
+    return (
+      !isDateBeforeToday(date) &&
+      isDateAllowedForSchedule(date, scheduleLimit)
+    );
+  }
+
+  function handleToggleDate(key) {
+    if (!isDateSelectable(key)) return;
+    setForm((prev) => {
+      const current = prev.dates || [];
+      const next = current.includes(key)
+        ? current.filter((item) => item !== key)
+        : [...current, key];
+      return { ...prev, dates: next.sort() };
+    });
+    if (fieldErrors.dates) {
+      setFieldErrors((prev) => ({ ...prev, dates: "" }));
+    }
+  }
+
+  function handleClearDates() {
+    setForm((prev) => ({ ...prev, dates: [] }));
+    if (fieldErrors.dates) {
+      setFieldErrors((prev) => ({ ...prev, dates: "" }));
+    }
+  }
+
   function validate() {
     const errors = {};
-    if (form.mode === "single") {
-      if (!form.date) {
-        errors.date = "Data é obrigatória.";
-      } else if (!isDateAllowedForSchedule(singleDate, scheduleLimit)) {
-        errors.date = limitMessage;
+    if (form.mode === "calendar") {
+      const dates = form.dates || [];
+      if (dates.length === 0) {
+        errors.dates = "Selecione ao menos uma data.";
+      } else if (!dates.every((key) => isDateSelectable(key))) {
+        errors.dates = "A seleção contém datas inválidas. Refaça a seleção.";
       }
     } else {
       if (!form.startDate) {
         errors.startDate = "Data inicial é obrigatória.";
+      } else if (isDateBeforeToday(startDate)) {
+        errors.startDate = pastMessage;
       } else if (!isDateAllowedForSchedule(startDate, scheduleLimit)) {
         errors.startDate = limitMessage;
       }
       if (!form.endDate) {
         errors.endDate = "Data final é obrigatória.";
+      } else if (isDateBeforeToday(endDate)) {
+        errors.endDate = pastMessage;
       } else if (!isDateAllowedForSchedule(endDate, scheduleLimit)) {
         errors.endDate = limitMessage;
       }
@@ -127,6 +184,10 @@ export default function ScheduleEditor({ room, onCancel, onScheduleReset }) {
       } else if (form.notes.length > NOTES_LIMIT) {
         errors.notes = `Responsável/Motivo deve ter no máximo ${NOTES_LIMIT} caracteres.`;
       }
+    }
+    const period = PERIOD_OPTIONS.find((p) => p.value === form.period);
+    if (!period || !period.shifts || period.shifts.length === 0) {
+      errors.period = "Selecione um turno.";
     }
     return errors;
   }
@@ -148,29 +209,39 @@ export default function ScheduleEditor({ room, onCancel, onScheduleReset }) {
       situation: form.situation,
       notes: form.notes.trim(),
     };
-    const next =
-      form.mode === "single"
-        ? applyScheduleOnDate(schedule, singleDate, payload)
-        : applyScheduleRange(schedule, {
-            start: startDate,
-            end: endDate,
-            ...payload,
-          });
+
+    const isCalendarMode = form.mode === "calendar";
+    const next = isCalendarMode
+      ? selectedDates.reduce(
+          (acc, key) => applyScheduleOnDate(acc, parseLocalDate(key), payload),
+          schedule
+        )
+      : applyScheduleRange(schedule, {
+          start: startDate,
+          end: endDate,
+          ...payload,
+        });
 
     setSaving(true);
     try {
       await updateRoom(room.id, { schedule: next });
       setSchedule(next);
-      setAppliedMessage(
-        form.mode === "single"
-          ? `Agendamento aplicado ao dia ${fullDate(singleDate)}.`
-          : (() => {
-              const days = businessDaysBetween(startDate, endDate);
-              return days.length === 1
-                ? "Agendamento aplicado a 1 dia útil."
-                : `Agendamento aplicado a ${days.length} dias úteis.`;
-            })()
-      );
+
+      if (isCalendarMode) {
+        setForm((prev) => ({ ...prev, dates: [] }));
+        setAppliedMessage(
+          selectedDates.length === 1
+            ? "Agendamento aplicado a 1 data."
+            : `Agendamento aplicado a ${selectedDates.length} datas.`
+        );
+      } else {
+        const days = businessDaysBetween(startDate, endDate);
+        setAppliedMessage(
+          days.length === 1
+            ? "Agendamento aplicado a 1 dia útil."
+            : `Agendamento aplicado a ${days.length} dias úteis.`
+        );
+      }
     } catch (err) {
       setError(err.message || "Erro ao salvar o agendamento.");
     } finally {
@@ -207,16 +278,14 @@ export default function ScheduleEditor({ room, onCancel, onScheduleReset }) {
   return (
     <div className="schedule-editor">
       <p className="schedule-editor-hint">
-        {form.mode === "single"
-          ? "Escolha a data, o turno e a situação. O agendamento será aplicado somente na data selecionada."
+        {form.mode === "calendar"
+          ? "Toque ou clique nas datas desejadas para selecioná-las. É possível escolher várias datas, e clicar novamente em uma data selecionada a remove."
           : "Defina o intervalo de datas, o turno e a situação. O agendamento será aplicado somente aos dias úteis (segunda a sexta) do intervalo."}
       </p>
-      {form.mode === "range" && (
-        <p className="schedule-editor-limit">
-          O limite para criação de agendamentos é de 3 meses: só é possível
-          agendar até {scheduleLimitLabel}.
-        </p>
-      )}
+      <p className="schedule-editor-limit">
+        O limite para criação de agendamentos é de 3 meses: só é possível
+        agendar até {scheduleLimitLabel}.
+      </p>
 
       {error && <div className="error">{error}</div>}
       {appliedMessage && <div className="success">{appliedMessage}</div>}
@@ -237,21 +306,38 @@ export default function ScheduleEditor({ room, onCancel, onScheduleReset }) {
         </div>
 
         <div className="range-fields">
-          {form.mode === "single" ? (
-            <div className="range-field">
-              <label htmlFor="scheduleDate">Data</label>
-              <input
-                id="scheduleDate"
-                name="date"
-                type="date"
-                value={form.date}
-                onChange={handleChange}
-                max={scheduleLimitKey}
-                className={fieldErrors.date ? "input-error" : ""}
-                disabled={saving}
+          {form.mode === "calendar" ? (
+            <div className="range-field range-field-full">
+              <ScheduleCalendar
+                today={today}
+                limitDate={scheduleLimit}
+                selectedKeys={selectedDates}
+                onToggleDate={handleToggleDate}
               />
-              {fieldErrors.date && (
-                <span className="field-error">{fieldErrors.date}</span>
+              {fieldErrors.dates && (
+                <span className="field-error">{fieldErrors.dates}</span>
+              )}
+              {selectionText && (
+                <div className="schedule-selection">
+                  <div className="schedule-selection-text">
+                    <span className="schedule-selection-label">
+                      {selectedDates.length === 1
+                        ? "Data selecionada:"
+                        : "Datas selecionadas:"}
+                    </span>
+                    <span className="schedule-selection-value">
+                      {selectionText}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-clear-dates"
+                    onClick={handleClearDates}
+                    disabled={saving}
+                  >
+                    Limpar
+                  </button>
+                </div>
               )}
             </div>
           ) : (
@@ -264,6 +350,7 @@ export default function ScheduleEditor({ room, onCancel, onScheduleReset }) {
                   type="date"
                   value={form.startDate}
                   onChange={handleChange}
+                  min={todayKey}
                   max={scheduleLimitKey}
                   className={fieldErrors.startDate ? "input-error" : ""}
                   disabled={saving}
@@ -281,6 +368,7 @@ export default function ScheduleEditor({ room, onCancel, onScheduleReset }) {
                   type="date"
                   value={form.endDate}
                   onChange={handleChange}
+                  min={todayKey}
                   max={scheduleLimitKey}
                   className={fieldErrors.endDate ? "input-error" : ""}
                   disabled={saving}
@@ -307,11 +395,14 @@ export default function ScheduleEditor({ room, onCancel, onScheduleReset }) {
                 </option>
               ))}
             </select>
+            {fieldErrors.period && (
+              <span className="field-error">{fieldErrors.period}</span>
+            )}
           </div>
 
           <div
             className={`range-field ${
-              form.mode === "single" ? "range-field-full" : ""
+              form.mode === "range" ? "range-field-full" : ""
             }`}
           >
             <label htmlFor="rangeSituation">Situação</label>
