@@ -55,7 +55,12 @@ function formatDayList(days) {
   return `${list.slice(0, -1).join(", ")} e ${list[list.length - 1]}`;
 }
 
-export default function ScheduleEditor({ room, onCancel, onScheduleReset }) {
+export default function ScheduleEditor({
+  room,
+  onCancel,
+  onScheduleReset,
+  onScheduleSaved,
+}) {
   const [schedule, setSchedule] = useState(() => decodeSchedule(room.schedule));
   const [form, setForm] = useState(EMPTY_SCHEDULE_FORM);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -226,6 +231,7 @@ export default function ScheduleEditor({ room, onCancel, onScheduleReset }) {
     try {
       await updateRoom(room.id, { schedule: next });
       setSchedule(next);
+      if (onScheduleSaved) onScheduleSaved(room.id, next);
 
       if (isCalendarMode) {
         setForm((prev) => ({ ...prev, dates: [] }));

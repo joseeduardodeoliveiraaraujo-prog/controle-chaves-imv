@@ -18,6 +18,12 @@ const DAY_SHORT = {
 
 const EMPTY_ENTRY = { situation: "available", notes: "" };
 
+export const SCHEDULE_SITUATIONS = {
+  available: { label: "Livre", className: "available" },
+  occupied: { label: "Ocupado", className: "occupied" },
+  maintenance: { label: "Manutenção", className: "maintenance" },
+};
+
 export function dateKey(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -156,6 +162,34 @@ export function normalizeSchedule(schedule, baseDate = new Date()) {
   const normalized = decodeSchedule(schedule, baseDate);
   ensureWeekEntries(normalized, getWeekDates(baseDate));
   return normalized;
+}
+
+export function getScheduleEntryInfo(entry) {
+  if (!entry) {
+    return {
+      hasEntry: false,
+      label: "—",
+      className: "",
+      notes: "",
+      title: "Sem agendamento para este dia/período.",
+    };
+  }
+
+  const situation = SCHEDULE_SITUATIONS[entry.situation] || null;
+  const notes = entry.notes || "";
+  const title = situation
+    ? notes
+      ? `${situation.label} — ${notes}`
+      : situation.label
+    : entry.situation;
+
+  return {
+    hasEntry: true,
+    label: situation ? situation.label : entry.situation,
+    className: situation ? situation.className : "unknown",
+    notes,
+    title,
+  };
 }
 
 export function parseLocalDate(value) {

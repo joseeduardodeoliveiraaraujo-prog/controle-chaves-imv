@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import SearchableSelect from "../components/SearchableSelect";
 import ScheduleEditor from "../components/ScheduleEditor";
+import RoomScheduleOverview from "../components/RoomScheduleOverview";
 import { getRooms } from "../services/firestore";
 import fechaduraPorta from "../assets/fechadura_porta.png";
 
@@ -46,6 +47,14 @@ export default function RoomSchedule() {
     setRooms((prev) =>
       prev.map((room) =>
         room.id === roomId ? { ...room, schedule: {} } : room
+      )
+    );
+  }
+
+  function handleScheduleSaved(roomId, nextSchedule) {
+    setRooms((prev) =>
+      prev.map((room) =>
+        room.id === roomId ? { ...room, schedule: nextSchedule } : room
       )
     );
   }
@@ -132,6 +141,7 @@ export default function RoomSchedule() {
                   room={selectedRoomObj}
                   onCancel={handleCancelSchedule}
                   onScheduleReset={handleScheduleReset}
+                  onScheduleSaved={handleScheduleSaved}
                 />
               </section>
             ) : (
@@ -142,6 +152,23 @@ export default function RoomSchedule() {
                 <p>Selecione uma sala acima para fazer o agendamento.</p>
               </div>
             )}
+
+            <section className="schedule-card">
+              <div className="schedule-card-head">
+                <span className="schedule-step" aria-hidden="true">3</span>
+                <div className="schedule-card-titles">
+                  <h3 className="schedule-card-title">Visão da sala</h3>
+                  <p className="schedule-card-sub">
+                    Programação da semana, apenas para consulta.
+                  </p>
+                </div>
+              </div>
+
+              <RoomScheduleOverview
+                key={selectedRoomObj ? selectedRoomObj.id : "none"}
+                room={selectedRoomObj}
+              />
+            </section>
           </>
         )}
       </main>
