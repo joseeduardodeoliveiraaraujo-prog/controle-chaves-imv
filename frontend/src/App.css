@@ -2639,6 +2639,9 @@
 }
 
 .schedule-editor-footer .btn-save-organize {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-width: 128px;
   padding: 9px 18px;
   font-size: 14px;
