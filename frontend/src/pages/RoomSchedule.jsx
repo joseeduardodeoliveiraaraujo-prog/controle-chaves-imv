@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import Header from "../components/Header";
 import SearchableSelect from "../components/SearchableSelect";
 import ScheduleEditor from "../components/ScheduleEditor";
@@ -9,7 +9,6 @@ import fechaduraPorta from "../assets/fechadura_porta.png";
 
 export default function RoomSchedule() {
   const { state } = useLocation();
-  const navigate = useNavigate();
   const [rooms, setRooms] = useState([]);
   const [selectedRoom, setSelectedRoom] = useState("");
   const [loading, setLoading] = useState(true);
@@ -60,7 +59,7 @@ export default function RoomSchedule() {
   }
 
   function handleCancelSchedule() {
-    navigate("/salas/admin");
+    setSelectedRoom("");
   }
 
   const selectedRoomObj = rooms.find((room) => room.id === selectedRoom) || null;
@@ -123,27 +122,46 @@ export default function RoomSchedule() {
             </section>
 
             {selectedRoomObj ? (
-              <section className="schedule-card">
-                <div className="schedule-card-head">
-                  <span className="schedule-step" aria-hidden="true">2</span>
-                  <div className="schedule-card-titles">
-                    <h3 className="schedule-card-title">
-                      Agendamento — {selectedRoomObj.name}
-                    </h3>
-                    <p className="schedule-card-sub">
-                      Defina a data, o turno e a situação da sala.
-                    </p>
+              <>
+                <section className="schedule-card">
+                  <div className="schedule-card-head">
+                    <span className="schedule-step" aria-hidden="true">2</span>
+                    <div className="schedule-card-titles">
+                      <h3 className="schedule-card-title">
+                        Agendamento — {selectedRoomObj.name}
+                      </h3>
+                      <p className="schedule-card-sub">
+                        Defina a data, o turno e a situação da sala.
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                <ScheduleEditor
-                  key={selectedRoomObj.id}
-                  room={selectedRoomObj}
-                  onCancel={handleCancelSchedule}
-                  onScheduleReset={handleScheduleReset}
-                  onScheduleSaved={handleScheduleSaved}
-                />
-              </section>
+                  <ScheduleEditor
+                    key={selectedRoomObj.id}
+                    room={selectedRoomObj}
+                    onCancel={handleCancelSchedule}
+                    onScheduleReset={handleScheduleReset}
+                    onScheduleSaved={handleScheduleSaved}
+                  />
+                </section>
+
+                <section className="schedule-card">
+                  <div className="schedule-card-head">
+                    <span className="schedule-step" aria-hidden="true">3</span>
+                    <div className="schedule-card-titles">
+                      <h3 className="schedule-card-title">Visão da sala</h3>
+                      <p className="schedule-card-sub">
+                        Programação da semana, apenas para consulta.
+                      </p>
+                    </div>
+                  </div>
+
+                  <RoomScheduleOverview
+                    key={selectedRoomObj.id}
+                    room={selectedRoomObj}
+                  />
+                </section>
+              </>
             ) : (
               <div className="schedule-empty">
                 <span className="schedule-empty-icon" aria-hidden="true">
@@ -152,23 +170,6 @@ export default function RoomSchedule() {
                 <p>Selecione uma sala acima para fazer o agendamento.</p>
               </div>
             )}
-
-            <section className="schedule-card">
-              <div className="schedule-card-head">
-                <span className="schedule-step" aria-hidden="true">3</span>
-                <div className="schedule-card-titles">
-                  <h3 className="schedule-card-title">Visão da sala</h3>
-                  <p className="schedule-card-sub">
-                    Programação da semana, apenas para consulta.
-                  </p>
-                </div>
-              </div>
-
-              <RoomScheduleOverview
-                key={selectedRoomObj ? selectedRoomObj.id : "none"}
-                room={selectedRoomObj}
-              />
-            </section>
           </>
         )}
       </main>
