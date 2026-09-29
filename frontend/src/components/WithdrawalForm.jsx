@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { getKeys, getPeople, withdrawKey } from "../services/firestore";
 import { formatPhone } from "../utils/format";
 import SearchableSelect from "./SearchableSelect";
+import keyImage from "../assets/key-chain.png";
 
 const STUDENT_PERSON_ID = "aluno-nao-cadastrado";
 
@@ -178,7 +179,7 @@ export default function WithdrawalForm({ onSuccess, onCancel }) {
               value={selectedKey}
               onChange={setSelectedKey}
               searchFields={["name", "location"]}
-              getIcon={() => "🔑"}
+              getIcon={() => <img src={keyImage} alt="" className="select-icon-img" />}
               getTitle={(k) => k.name}
               getSubtitle={(k) => k.location}
             />

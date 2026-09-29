@@ -6,14 +6,9 @@ import {
   SHIFTS,
   getWeekDates,
   getWeekMonday,
+  getScheduleEntryInfo,
   normalizeSchedule,
 } from "../utils/schedule";
-
-const SITUATIONS = {
-  available: { label: "Livre", className: "available" },
-  occupied: { label: "Ocupado", className: "occupied" },
-  maintenance: { label: "Manutenção", className: "maintenance" },
-};
 
 export default function Rooms() {
   const { user } = useAuth();
@@ -159,44 +154,26 @@ export default function Rooms() {
                           {shift}
                         </th>
                         {roomsWithSchedule.map(({ room, byDay }) => {
-                          const entry = byDay[day.dateKey]?.[shift];
-                          const situation = entry
-                            ? SITUATIONS[entry.situation]
-                            : null;
-                          const title = entry
-                            ? situation
-                              ? entry.notes
-                                ? `${situation.label} — ${entry.notes}`
-                                : situation.label
-                              : entry.situation
-                            : "Sem agendamento para este dia/período.";
+                          const info = getScheduleEntryInfo(
+                            byDay[day.dateKey]?.[shift]
+                          );
                           return (
                             <td
                               key={room.id}
-                              className={`rooms-cell ${
-                                entry && situation
-                                  ? situation.className
-                                  : entry
-                                    ? "unknown"
-                                    : ""
-                              }`}
-                              title={title}
+                              className={`rooms-cell ${info.className}`}
+                              title={info.title}
                             >
-                              {entry ? (
+                              {info.hasEntry ? (
                                 <span className="rooms-cell-content">
-                                  <span>
-                                    {situation
-                                      ? situation.label
-                                      : entry.situation}
-                                  </span>
-                                  {entry.notes && (
+                                  <span>{info.label}</span>
+                                  {info.notes && (
                                     <span className="rooms-cell-note">
-                                      {entry.notes}
+                                      {info.notes}
                                     </span>
                                   )}
                                 </span>
                               ) : (
-                                "—"
+                                info.label
                               )}
                             </td>
                           );
